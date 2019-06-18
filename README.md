@@ -1,7 +1,9 @@
 # Java_Project
 
 > @Author: HenrySHE
+>
 > @Created Time: 2019-06-18
+>
 > @Description: A project for reviewing Java knowledge, including Java basic data structure, algorithm, maven project, spring boost and etc.
 
 Learning resources:
