@@ -20,7 +20,7 @@ Learning resources:
 4. [选择,切换,删除,发布环境](https://dev.tencent.com/help/cloud-studio/environment)
 5. [协同编辑](https://dev.tencent.com/help/cloud-studio/collaborate)
 
-Maven: create a project form terminal [link](https://www.mkyong.com/maven/how-to-create-a-java-project-with-maven/)
+Maven: create a project form terminal: [[link]](https://www.mkyong.com/maven/how-to-create-a-java-project-with-maven/)
 
 ----
 
