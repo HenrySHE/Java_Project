@@ -226,4 +226,102 @@ public class Variable{
 
 - 父类中声明为 public 的方法在子类中也必须为 public。
 - 父类中声明为 protected 的方法在子类中要么声明为 protected，要么声明为 public，不能声明为 private。
-- 父类中声明为 private 的方法，不能够被继承。
+- 父类中声明为 private 的方法，不能够被继承。 
+
+## Java 运算符
+
+1. 算术运算符: (`+  -  *  /  %  ++ --`)
+    1. 注意`b = 2*++a`是先自增,然后再乘; `b=2*a++` 则是先乘,后自增
+2. 关系运算符: (`==  !=  >  <  >=  <=`)
+3. 位运算符: (`&  |  ^  ~  <<  >> >>>`)
+    1.  `&`: 对位都是1,则结果为1,否则为0
+    2.  `|` : 对位都是0,则结果为0,否则为1
+    3.  `^`: 对位相同,结果为0,否则为1
+    4.  `~`: 翻转(0变1, 1变0)
+    5.  `<<`: 左位移
+    6.  `>>>`: 按位移右移补0操作: `A=0001 1100, A>>>2 = 0000 1111(2) = 15(10)`
+4. 逻辑运算符: (`&&  ||  !`)
+5. 赋值运算符: (`=  +=  -=  *=  /=  (%)=  <<=  >>=  &=  ^=  |`)
+6. 其他运算符: 
+    1. 条件运算符: `?:` 例子(如果 a 等于 1 成立，则设置 b 为 20，否则为 30)  `b = (a == 1) ? 20 : 30;`
+    2. `instaneof` 运算符: 返回`true/false`
+
+## Java 循环:
+
+几种循环方法:
+- while 循环
+- do..while循环
+- for循环
+- Java增强for循环: 
+- break 关键字: 遇到某些条件即刻跳出循环
+- continue关键字 : 跳过某些条件下的操作
+
+### 1. Java增强for循环: (<u>主要用于数组(`int[]`或者 `String []`)</u>)
+
+```java
+public class Test { 
+    public static void main(String args[]){ 
+        int [] numbers = {10, 20, 30, 40, 50}; 
+        for(int x : numbers ){ 
+            System.out.print( x );
+            System.out.print(",");
+        } 
+        System.out.print("\n");
+        String [] names ={"James", "Larry", "Tom", "Lacy"};
+        for( String name : names ) {
+            System.out.print( name ); 
+            System.out.print(","); 
+        } 
+    } 
+}
+
+// Answer:
+//10,20,30,40,50,
+//James,Larry,Tom,Lacy,
+```
+
+## Java Switch Case
+格式:
+```java
+switch(expression){
+    case value:
+        //--do sth
+        break;
+    case value:
+        //--do sth
+        break;
+    default:
+        //--do sth
+ }
+```
+- switch 语句中的变量类型可以是：**byte、short、int 或者 char** 。从 Java SE 7 开始，switch 支持**字符串 String** 类型了，同时 case 标签必须为字符串常量或字面量。
+- 当遇到 break 语句时，switch 语句终止。程序跳转到 switch 语句后面的语句执行。case 语句不必须要包含 break 语句。**如果没有 break 语句出现，程序会继续执行下一条 case 语句，直到出现 break 语句**。
+- switch 语句可以包含一个 default 分支，该分支一般是 switch 语句的最后一个分支（可以在任何位置，但建议在最后一个）。default 在没有 case 语句的值和变量值相等的时候执行。**default 分支不需要 break 语句**。
+- 如果当前匹配成功的 case 语句块没有 break 语句，**则从当前 case 开始，后续所有 case 的值都会输出，如果后续的 case 语句块有 break 语句则会跳出判断**。
+
+例子:
+```java
+public class Test{
+    public static void main(String args[]){
+        int i = 1;
+        switch(i){
+            case 0:
+                System.out.println("0");
+            case 1:
+                System.out.println("1");
+            case 2:
+                System.out.println("2");
+            case 3:
+                System.out.println("3"); 
+                break;
+            default:
+                System.out.println("default");
+        }
+    }
+}
+
+// 结果:
+// 1
+// 2
+// 3
+```
