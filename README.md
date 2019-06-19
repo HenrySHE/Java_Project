@@ -73,6 +73,16 @@ referenceVariable.methodName();
 │   ├── hello.class # 打印hello的文件
 │   └── hello.java
 └── README.md
+├── NumberMath # Math方法集合
+│   ├── TestNumber.class
+│   └── TestNumber.java
+├── README.md
+└── TestPrimitiveType #查看基本数据长度
+    ├── PrimitiveTypeTest.class
+    ├── PrimitiveTypeTest.java
+    ├── result.txt
+    ├── TestDefaultValue.class
+    └── TestDefaultValue.java
 
 ```
 
@@ -325,3 +335,17 @@ public class Test{
 // 2
 // 3
 ```
+
+## Java Number,Math类
+Number类:
+1. xxxValue(): 类型转换然后显示数值:
+```java
+Integer x = 5;
+System.out.println(x.byteValue());
+System.out.println(x.doubleValue());
+```
+2. compareTo(): 对比数值大小, 相等返回0,小于返回-1, 大于返回
+3. equuals()
+4. valueOf()
+
+
