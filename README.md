@@ -442,6 +442,16 @@ public class StringTest{
 具体方法参考`testStringChar/TestStringChar.java`文件。
 
 
+
+## Java 数组
+
+### 1. 数组变量声明
+
+1. `dataType[] arrayRefVar;`  建议首选使用. 例: `double[] myList;`
+2. `dataType arrayRefVar[];`  效果相同 例: `double myList[];`
+
+
+
 ### 2. 创建数组(new obj)
 
 先声明: `arrayRefVar = new dataType[arraySize];`
