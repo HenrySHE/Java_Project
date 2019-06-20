@@ -337,7 +337,7 @@ public class Test{
 ```
 
 ## Java Number,Math类
-Number类:
+Number，Math类:
 1. xxxValue(): 类型转换然后显示数值:
 ```java
 Integer x = 5;
@@ -347,5 +347,45 @@ System.out.println(x.doubleValue());
 2. compareTo(): 对比数值大小, 相等返回0,小于返回-1, 大于返回
 3. equuals()
 4. valueOf()
+...
+(具体参考`NumberMath/TestNumber.java`文件)
+
+## Java Character类
+
+> 3 types of char value:
+>
+> - Single character initialization: `char ch= 'a';`
+> - Initialize Unicode: `char uniChar='\u039A;'`
+> - Char Array: `char[] charArray = {'a','b','c'};`
+
+构造对象的方式去创建character: `Character ch = new Character('a');`
+
+### 1. 转义字符
+
+| 转义序列 |         描述         |
+| :------: | :------------------: |
+|    \t    |   在文中插入tab键    |
+|    \b    | 在文中插入一个后退键 |
+|    \n    |    在文中该处换行    |
+|    \r    |    在文中插入回车    |
+|    \f    |   在文中插入换页符   |
+|    \'    |   在文中插入单引号   |
+|    \"    |   在文中插入双引号   |
+|    \\    |   在文中插入反斜杠   |
 
 
+
+### 2. Character 方法
+
+Reference [[link]](https://www.runoob.com/manual/jdk1.6/java/lang/Character.html)
+
+| Index | Methods          | Description                                |
+| ----- | ---------------- | ------------------------------------------ |
+| 1     | `isLetter()`     | `Boolean a = Character.isLetter('a');`     |
+| 2     | `isDigit()`      | `Boolean a = Character.isDigit('a');`      |
+| 3     | `isWhitespace()` | `Boolean a = Character.isWhitespace('a');` |
+| 4     | `isUpperCase()`  | `Boolean a = Character.isUpperCase('a');`  |
+| 5     | `isLowerCase()`  | `Boolean a = Character.isLowerCase('a');`  |
+| 6     | `toUpperCase()`  | `Char a = Character.toUpperCase('a');`     |
+| 7     | `toLowerCase()`  | `Char a = Character.toLowerCase('a');`     |
+| 8     | `toString()`     | `String a = Character.toString('a');`      |
