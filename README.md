@@ -389,3 +389,52 @@ Reference [[link]](https://www.runoob.com/manual/jdk1.6/java/lang/Character.html
 | 6     | `toUpperCase()`  | `Char a = Character.toUpperCase('a');`     |
 | 7     | `toLowerCase()`  | `Char a = Character.toLowerCase('a');`     |
 | 8     | `toString()`     | `String a = Character.toString('a');`      |
+
+
+## Java String 类
+
+最基本创建String: `String str = 'this is a string';`
+
+构造方法创建`String对象`:
+
+```java
+public class StringTest{
+    public static void main(String args[]){
+        //initialize a char array
+        char[] charArr = {'a','b','c','d'};
+        //Create a String Obj
+        String charStr = new String(charArr);
+        System.out.println(charStr);
+    }
+}
+```
+
+1. 拼接String: 
+   1. `"a".concat("b")`
+   2. `"a"+"b"` (more easy, more commonly used)
+
+2. String Formatting (字符串格式规范化): 使用`printf()`和`format()`来规范
+
+   - 使用静态方法`format()`可以使用返回一个String对象,*可以创建可复用字符串*,而不是仅仅用于打印输出;
+
+   ```java
+   String fs;
+   fs = String.format("浮点型变量的值为 " +
+                      "%f, 整型变量的值为 " +
+                      " %d, 字符串变量的值为 " +
+                      " %s", floatVar, intVar, stringVar);
+   //---------------[or you can just print]-------------------
+   System.out.printf("浮点型变量的值为 " +
+                     "%f, 整型变量的值为 " +
+                     " %d, 字符串变量的值为 " +
+                     "is %s", floatVar, intVar, stringVar);
+   
+   ```
+
+
+
+### 1. String 方法
+
+> 方法比较多，没有完全罗列出来，
+>
+> Reference [[link]](https://www.runoob.com/java/java-string.html), [[API文档]](https://www.runoob.com/manual/jdk1.6/java/lang/String.html)
