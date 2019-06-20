@@ -438,3 +438,5 @@ public class StringTest{
 > 方法比较多，没有完全罗列出来，
 >
 > Reference [[link]](https://www.runoob.com/java/java-string.html), [[API文档]](https://www.runoob.com/manual/jdk1.6/java/lang/String.html)
+
+具体方法参考`testStringChar/TestStringChar.java`文件。
