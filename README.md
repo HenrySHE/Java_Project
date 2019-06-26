@@ -511,3 +511,258 @@ public class TestArray{
   }
 }
 ```
+
+## Java 方法
+
+### 1. 方法的定义:
+- 是解决一类问题步骤的有序集合
+- 方法包含于类与对象中
+- 在程序中被创建, 在其他地方被引用 
+
+### 2. 方法的优点：
+- 是程序简短而清晰
+- 有利于程序的维护
+- 提高开发效率
+- 提高代码重用
+
+### 3. 方法的命名规则：
+- 第一个单词以小写字母作为开头，后面的单词就用大写字母开头； 例如： `addPerson`,`editProfile`等等 
+- 下划线可能出现在JUnit测试方法名称，例如： `testPop_emptyStack` 
+
+### 4. 方法的定义
+
+```java
+修饰符[public static] 返回值类型[int/boolean/float] 方法名[findmax] (参数类型[int] 参数名[i]){
+    方法体
+    return 返回值
+}
+例如:
+public static int age(int birthday) {...}
+```
+
+### 5. 方法的重载
+ 相同的方法名, 不同的参数, 调用的时候就会根据传递的参数去决定调用那个方法.
+ 
+ ### 6. 变量作用域
+ 
+ - 方法内定义的，称作**局部变量**
+ - 局部变量必须声明才可以使用
+ - for循环声明的变量，作用范围在整个循环
+
+### 7.命令行参数（运行的时候伴随参数的传递）
+
+```java
+public class CommandLine{
+    public static void main(String args[]){
+        for (int i=0; i<args.length; i++){
+            System.out.println("args["+i+"]:" + args[i]);
+        //execute: javac CommandLine hello world test
+        // args[0]: hello
+        // args[1]: world
+        // args[2]: test
+        }
+    }
+}
+```
+
+### 8. 构造方法/构造函数
+
+1. 目的: 用来初始化对象;
+2. 属性: 构造方法和所在的类名字相同,但**没有返回值**.
+3. 所有类都有构造方法, (只是你不定义的话,Java自己默认定义构造方法), 一旦自己定义,默认构造方法就失效
+
+#### 8.1 构造函数简单例子: (查看`/TestMethods/ConsDemo.java`文件)
+```java
+class MyClass{
+    int x;
+    MyClass(){
+        x = 10;
+    }    
+
+public class ConsDemo{
+    public static void main(String args[]){
+        MyClass t1 = new MyClass(10);
+        System.out.println(t1.x);
+    }
+}
+
+```
+
+### 9. 可变参数
+格式: ` typeName... paremeterName`  (在指定参数类型后面加省略号)
+(具体查看`TestMethods/VarargsDemo.java`文件
+
+```java
+public class VarargsDemo{
+    public static void main (String args []){
+        printMax(34,3,3,2,56.5);
+        printMax(new double[]{1,2,3});
+    }
+    public static void printMax(double... numbers){
+        if (numbers.length == 0){
+            System.out.println("No args.");
+        return;
+        }
+        double result = numbers[0];
+        for (int i =1; i< numbers.length; i++){
+            if(numbers[i]>result){
+            result = numbers[i];
+        }
+        }
+        System.out.println("The max value is "+ result);
+        //The max value is 56.5
+        //The max value is 3.0
+    }
+}
+```
+
+### 10. Finalization
+
+在对象被垃圾收集器析构之前调用。
+作用： 用来清除回收对象
+
+格式：
+```java
+protected void finalize() throws java.lang.Throwable{
+    super.finalize();
+    System.out.println(id + "is desposed.");
+}
+```
+
+## Java Stream, File and IO (输入输出操作）
+> - Java.io基本包含了所有的操作输入,输出需要的类。
+> - Java.io支持很多格式
+> - Stream可以理解为数据的序列
+> - Java对IO有很强大灵活的支持
+
+### 1. Reading terminal input (读取控制台输入) `System.in`
+创建`BufferedReader`去读取字符流：
+```java
+BufferedReader br = new BufferedReader(new
+                                InputStreamReader(System.in));
+```
+**读取：**
+- `read()`读取**单个字符**
+-`readLine()`读取**一个字符串**
+
+read()方法类型：`int read() throws IOException`
+每次调用read()方法，就会从IO Stream里面读取一个字符，当作**Int**类型返回（要强制转换成char才能print）。然后Stream结束之后返回`-1`。
+
+**read() 示例：**
+```java
+import java.io.*;
+
+public class BRRead{
+    public static void main (String args[]) throws IOException {
+        char c;
+        BufferedReader br = new BufferReader(new InputStreamReader(System.in));
+        System.out.println("输入字符，按下‘q’退出。");
+        do {
+            //将int类型的数字强制转换成char类型
+            c = (char) br.read();
+            System.out.println(c);
+        }while (c!='q');
+    }
+}
+```
+
+**readLine()示例**
+```java
+import java.io.*;
+
+public class BRReadLines{
+    public static void main (String args[]) throws IOException {
+        String str;
+        BufferedReader br = new BufferReader(new InputStreamReader(System.in));
+        System.out.println("输入字符，按下‘end’退出。");
+        do {
+            //str类型就不需要转换
+            str = br.readLine();
+            System.out.println(str);
+        }while (!str.equals("end");
+    }
+}
+```
+
+### 2. 控制台输出
+常用： `System.out.println()` / `System.out.print()` / `System.out.write()`
+用法都差不多，就是输出到控制台。 `write()`已经不太常用
+
+### 3. File I/O
+
+分为`InputStream`/`OutputStream`
+
+例子：
+```java
+import java.io.*;
+public class fileStreamTest{
+    public static void main (String args[]){
+        try {
+            byte bWrite[] = {11,21,3,20,5};
+            OutputStream os = new FileOutputStream("test.txt");
+            for (int x =0; x< bWrite.length; x++){
+                os.write(bWrite[x]);
+            }
+            os.close();
+            
+            Input Stream is = new FileInputStream("test.txt");
+            int size = is.avalizble();
+            
+            for (int i = 0; i<size; i++){
+                System.out.print((char) is.read() + "  ");
+            }
+            is.close;
+        }catch (IOException e){
+            System.out.print("Exception");
+        }
+    }
+}
+```
+
+### 4. Java 目录
+
+
+1. 创建目录
+   - `mkdir()`用来创建一个文件夹,返回类型为true/false. False证明路径已经存在,或整个路径还不存在
+   - `mkdirs()`则是用来创建所有文件夹以及子文件夹(创建多个)
+
+```java
+import java.io.File;
+
+public class CreateDir{
+    public static void main(String args[])
+}
+```
+
+
+
+2. 读取目录
+   - 其实就是`File`对象,包含其他文件夹
+   - 可以通过`list()`方法来获取包含的文件以及文件夹
+
+```java
+import java.io.File;
+
+public class DirList{
+    public static void main(String args[]){
+        String dirname = "/tmp";
+        File f1 = new File(dirname);
+        if (f1.isDirectory()){
+            System.out.println("目录"+dirname);
+            String s[]=f1.list();
+            for(int i = 0;i<s.length;i++){
+                if(f.isDirectory()){
+                    System.out.println(s[i] + "是一个目录");
+                }else{
+                    System.out.println(s[i] + "是个文件");
+                }
+            }
+        }else{
+            System.out.println(dirname + "不是一个目录");
+        }
+    }
+}
+```
+
+3. 删除目录或文件
+   - 可以用`java.io.File.delete()`来删除
