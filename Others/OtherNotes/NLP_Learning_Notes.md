@@ -81,7 +81,45 @@
 6. 概念层次网络(Hierarchical Network of Concepts, HNC)
 
 ## 语言模型
-> 目前主流采用 n元语法(n-gram)模型,简单直接,但因为数据缺乏而必须采取平滑(smoothing)算法
+目前主流采用 n元语法(n-gram)模型,简单直接,但因为数据缺乏而必须采取平滑(smoothing)算法
+1. n-gram模型 (需要平滑方法)
+2. 语言模型评价: **交叉熵** 和 **困惑度** 越小越好; <u>在英语文本中,</u>n元语法模型计算的困惑度range为[50,1000]之间; 交叉熵的范围在[6,10]个比特位. 具体值和文本类型有关.
 
-to-be continue..
-2019-7-31 Wed
+
+
+**平滑方法:**
+
+Kneser-Ney平滑方法和修正的Kneser-Ney平滑方法都好于其他的平滑方法; 一般情况下, Katz平滑方法和Jelinek-Mercer平滑方法都有较好的表现,但还是稍微逊色. 
+
+
+
+**语言模型自适应:**
+
+1. 基于缓存的语言模型(cache-based LM)
+2. 基于混合方法的语言模型(mixture-based LM)
+3. 基于最大熵的语言模型
+
+
+
+**语言模型网站**
+
+- http://www.speech.sri.com/projects/srilm/
+
+- http://mi.eng.cam.ac.uk/~prc14/toolkit.html
+
+
+
+## 概率图模型 (Probability graphical models)
+
+**模型图** (Graphical models)
+
+- 有向图模型(Directed graphical models)
+  - 静态贝叶斯网络(Static Bayesian networks)
+  - 动态贝叶斯网络(Dynamic Bayesian networks(DBN)): 用于处理随时间变化的动态系统中的推断和预测问题;
+    - 隐马尔科夫模型(Hidden Markov movel (HMM)):在 **语音识别,汉语自动分词, 词性标注和统计机器翻译**得到广泛应用
+    - 卡尔曼滤波器(Kalman filter): 在**信号处理**领域有广泛用途.
+    - ...
+- 无向图模型(Undirected graphical models)
+  - 马尔科夫网络 (Markov networks)
+  - 吉布斯/玻尔兹曼机(Gibbs/Boltzman machine)
+  - 条件随机场(Conditional random fiels (CRF))
