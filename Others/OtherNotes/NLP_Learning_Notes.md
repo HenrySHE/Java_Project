@@ -84,3 +84,4 @@
 > 目前主流采用 n元语法(n-gram)模型,简单直接,但因为数据缺乏而必须采取平滑(smoothing)算法
 
 to-be continue..
+2019-7-31 Wed
