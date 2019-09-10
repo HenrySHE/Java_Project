@@ -767,4 +767,33 @@ public class DirList{
 3. 删除目录或文件
    - 可以用`java.io.File.delete()`来删除
 
+
+## Thinking in Java NotesNotes 《Java编程思想》
+
+### this关键字
+构造函数--This的使用方法`/TestKeywordThis/Leaf.java/`
+
+```java
+public class Leaf{
+  int i = 0;
+  Leaf increment(){
+    i++;
+    return this;
+  }
+
+  void print(){
+    System.out.println("i = "+ i);
+  }
+
+  public static void main(String[] args){
+    Leaf x = new Leaf();
+    Leaf y = new Leaf();
+    x.increment().increment().increment().print(); //i = 3
+    y.increment().print();// i = 1
+  }
+}
+
+```
+因为返回了当前对象的引用，所以方便一条语句里面对同一对象重复操作。
+
 To be continued..
