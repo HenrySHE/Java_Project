@@ -1,4 +1,5 @@
 class StaticTest{
+  //详见《Java编程思想》29-30页
   //类变量
   static int i = 10086;
   private static int j = 10087;
@@ -32,6 +33,5 @@ class StaticTest{
     StaticTest.hello();
     //没有static的只能通过创建对象去调用
     st1.hi();
-
   }
 }
