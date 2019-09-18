@@ -797,7 +797,8 @@ public class Leaf{
 因为返回了当前对象的引用，所以方便一条语句里面对同一对象重复操作。
 
 ### 测试继承
-> 这里有重写方法,并且在同一个java文件里面写了2个main funcion, 并且告诉了如何调用非public class里面的Main方法 (★★★★★))
+> 这里有重写方法,并且在同一个java文件里面写了2个main funcion, 并且告诉了如何调用非public class里面的Main方法 (★★★★★)) 
+> 路径: `testInheritance/Detergent.java`
 ```java
 /*
 2019年9月17日17:38:25
@@ -879,4 +880,9 @@ Testing DettergenSon (extended form Detergent class)
 Cleanser dilute() apply() foam() sterilize()
 */
 ```
+
+### 测试初始化顺序:
+先从基类(就是最开始的父类)开始初始化,Java虚拟机在你访问它之前,它已经完成了初始化了其实. 路径:`TestInheritance/初始化顺序/Cartoon.java`
+
+
 To be continued..
