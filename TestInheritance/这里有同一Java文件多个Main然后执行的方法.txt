@@ -1,0 +1,1 @@
+Like the title said, it not only have inheritance example, but also mult "main" function and how to call the in each class.
