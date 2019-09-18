@@ -43,16 +43,37 @@ class Detergent extends Cleanser{
     System.out.println("Testing base class:");
     //调用其他方法里面的那个main方法
     Cleanser.main(args);
+    System.out.println("Testing DettergenSon (extended form Detergent class)");
+    DettergentSon.main(args);
   }
 }
 
+//附加作业,添加一个继承于Detergent的,命名为DettergentSon,然后覆盖原来scrub方法
+//接着添加一个自己的方法"sterilize()"
+
+class DettergentSon extends Detergent{
+  public void scrub(){
+    //do nothing
+    //覆盖原来的方法
+  }
+  public void sterilize(){
+    append(" sterilize()");
+  }
+
+  public static void main(String[] args){
+    DettergentSon s = new DettergentSon();
+    s.dilute();
+    s.apply();
+    s.scrub();
+    s.foam();
+    s.sterilize();
+    System.out.println(s);
+  }
+}
 /*
-Inside Bath()
-Soap()
-S1 = Happy
-S2 = Happy
-S3 = Joy
-S4 = Joy
-i = 47
-toy = 3.14
+Cleanser dilute() apply()Detergent.scrub()  scrub() foam()
+Testing base class:
+Cleanser dilute() apply() scrub()
+Testing DettergenSon (extended form Detergent class)
+Cleanser dilute() apply() foam() sterilize()
 */
