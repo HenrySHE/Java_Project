@@ -1,0 +1,3 @@
+public enum Spiciness{
+  ERSHIYUAN,SHIYUAN,WUYUAN,YIYUAN,YIJIAO,YIFEN
+}

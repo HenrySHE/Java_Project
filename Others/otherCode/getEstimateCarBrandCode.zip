@@ -1,0 +1,769 @@
+package com.meicloud.analyzer.algo;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.meicloud.analyzer.base.FSConsts;
+import com.meicloud.analyzer.classifierUtil.CarBrandAndSerieUtil;
+import com.meicloud.analyzer.classifierUtil.ExtractUtils;
+import com.meicloud.analyzer.dao.CarBrandsAndSeriesDao;
+import com.meicloud.analyzer.dao.volvo.OtherCarBrandsAndSeriesDao;
+import com.meicloud.analyzer.entity.NewsNLPResult;
+import com.meicloud.analyzer.test.IOUtil;
+import com.meicloud.analyzer.util.object.FreqDist;
+import com.midea.persistePlus.dao.DaoFactory;
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * 根据标题判断是volvo主体报道还是相关报道
+ *
+ * @author ZHUOBY
+ * @date 2019-7-18 16:21
+ */
+public class CorrelationClassifierVolvo {
+
+    private static final int MAX_WORD_LENGTH = 10;
+    private static final int MIN_WORD_LENGTH = 1;
+    private static Map<String, String> keyword2BrandMap = new ConcurrentHashMap<>(16);
+    private volatile static CorrelationClassifierVolvo instance = null;
+    private Map<String, String> serie2SerieIDMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> brand2BrandIDMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> carBrandsDict = new ConcurrentHashMap<>(16);
+    private Map<String, String> carSeriesDict = new ConcurrentHashMap<>(16);
+    private Map<String, String> serieID2OfficialSerieMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> cyberSerie2OfficialSerieMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> cyberBrand2OfficialBrandMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> officialSerie2OfficialBrandMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> cyberSerie2SerieIDMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> cyberSerie2OfficialBrandMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherSerie2SerieIdMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherBrand2BrandIdMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherCarBrandsDict = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherCarSeriesDict = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherSerieId2OfficialSerieMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherCyberSerie2OfficialSerieMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherCyberBrand2OfficialBrandMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherOfficialSerie2OfficialBrandMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherCyberSerie2SerieIdMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherCyberSerie2OfficialBrandMap = new ConcurrentHashMap<>(16);
+    private Map<String, String> otherKeyword2BrandMap = new ConcurrentHashMap<>(16);
+
+    private CorrelationClassifierVolvo(String domain) {
+
+        // 加载其他所有的品牌车系别名表
+        OtherCarBrandsAndSeriesDao otherCarBrandsAndSeriesDao = OtherCarBrandsAndSeriesDao.getInstance();
+        otherCarBrandsDict = otherCarBrandsAndSeriesDao.getOtherCarBrandsDict();
+        otherCarSeriesDict = otherCarBrandsAndSeriesDao.getOtherCarSeriesDict();
+        otherSerieId2OfficialSerieMap = otherCarBrandsAndSeriesDao.getOtherSerieId2OfficialSerieMap();
+        otherCyberSerie2OfficialSerieMap = otherCarBrandsAndSeriesDao.getOtherCyberSerie2OfficialSerieMap();
+        otherCyberBrand2OfficialBrandMap = otherCarBrandsAndSeriesDao.getOtherCyberBrand2OfficialBrandMap();
+        otherOfficialSerie2OfficialBrandMap = otherCarBrandsAndSeriesDao.getOtherOfficialSerie2OfficialBrandMap();
+        otherCyberSerie2SerieIdMap = otherCarBrandsAndSeriesDao.getOtherCyberSerie2SerieIdMap();
+        otherCyberSerie2OfficialBrandMap = otherCarBrandsAndSeriesDao.getOtherCyberSerie2OfficialBrandMap();
+        otherKeyword2BrandMap.putAll(otherCyberBrand2OfficialBrandMap);
+        otherKeyword2BrandMap.putAll(otherCyberSerie2OfficialBrandMap);
+        otherBrand2BrandIdMap = otherCarBrandsAndSeriesDao.getOtherBrand2BrandIdMap();
+        otherSerie2SerieIdMap = otherCarBrandsAndSeriesDao.getOtherSerie2SerieIdMap();
+
+
+        // 加载volvo专属分析的品牌车系别名表
+        CarBrandsAndSeriesDao carBrandsAndSeriesDao = CarBrandsAndSeriesDao.getInstance();
+        carBrandsDict = carBrandsAndSeriesDao.getCarBrandsDict();
+        carSeriesDict = carBrandsAndSeriesDao.getCarSeriesDict();
+        serieID2OfficialSerieMap = carBrandsAndSeriesDao.getSerieID2OfficialSerieMap();
+        cyberSerie2OfficialSerieMap = carBrandsAndSeriesDao.getCyberSerie2OfficialSerieMap();
+        cyberBrand2OfficialBrandMap = carBrandsAndSeriesDao.getCyberBrand2OfficialBrandMap();
+        officialSerie2OfficialBrandMap = carBrandsAndSeriesDao.getOfficialSerie2OfficialBrandMap();
+        cyberSerie2SerieIDMap = carBrandsAndSeriesDao.getCyberSerie2SerieIDMap();
+        cyberSerie2OfficialBrandMap = carBrandsAndSeriesDao.getCyberSerie2OfficialBrandMap();
+        keyword2BrandMap.putAll(cyberBrand2OfficialBrandMap);
+        keyword2BrandMap.putAll(cyberSerie2OfficialBrandMap);
+        // 添加需要过滤的品牌车系
+        keyword2BrandMap.putAll(otherCyberBrand2OfficialBrandMap);
+        keyword2BrandMap.putAll(otherCyberSerie2OfficialBrandMap);
+        otherKeyword2BrandMap.putAll(cyberBrand2OfficialBrandMap);
+        otherKeyword2BrandMap.putAll(cyberSerie2OfficialBrandMap);
+        brand2BrandIDMap = carBrandsAndSeriesDao.getBrand2BrandIDMap();
+        serie2SerieIDMap = carBrandsAndSeriesDao.getSerie2SerieIDMap();
+    }
+
+    public static CorrelationClassifierVolvo getInstance(String domain) {
+        if (instance == null) {
+            synchronized (CorrelationClassifierVolvo.class) {
+                if (instance == null) {
+                    instance = new CorrelationClassifierVolvo(domain);
+                }
+            }
+        }
+        return instance;
+    }
+
+    /**
+     * 提取标题中所有的汽车品牌、汽车车系、品牌ID和车系ID
+     *
+     * @param nlpDoc  结果类
+     * @param title   标题
+     * @param comment 评论
+     */
+    public void brandCorrelationClassify(NewsNLPResult nlpDoc, String title, String comment) {
+        // 提取相关性关键词
+        if (title != null && title.length() > 1) {
+            title = title.toLowerCase();
+            // 删除标题中的空白再进行关键词提取
+            title = title.replaceAll(" ", "");
+
+            List<String> keywords = ExtractUtils.simpleBackwardMaxMatch(title, keyword2BrandMap, MAX_WORD_LENGTH, MIN_WORD_LENGTH);
+            keywords = CarBrandAndSerieUtil.removeSpecialSeries(title, keywords);
+            boolean isExtractedFromComment = false;
+            if (CollectionUtils.isEmpty(keywords)) {
+                if (comment != null && comment.length() > 1) {
+                    comment = comment.toLowerCase().replaceAll(" ", "");
+                    keywords = ExtractUtils.simpleBackwardMaxMatch(comment, keyword2BrandMap, MAX_WORD_LENGTH, MIN_WORD_LENGTH);
+                    keywords = CarBrandAndSerieUtil.removeSpecialSeries(comment, keywords);
+                    isExtractedFromComment = true;
+                }
+            }
+
+            Set<String> extractedCarBrands = new HashSet<>();
+            Set<String> extractedCarSeries = new HashSet<>();
+            Set<String> extractedCarBrandIds = new HashSet<>();
+            Set<String> extractedCarSerieIds = new HashSet<>();
+
+            // 遍历从标题（正文）中提取的关键词，将关键词对应的品牌、车系、品牌ID、车系ID存放入结果类中
+            // 备注：当相关性表里面有这个品牌但是车系表里面没有时，在结果中用“NO_CAR_BRAND”代替，
+            // 例如“比亚迪宋比宝马x5好用”，车系表没有宝马这个品牌，就用“NO_CAR_BRAND”代替
+            if (keywords.size() > 0) {
+                for (String keyword : keywords) {
+                    if (keyword2BrandMap.containsKey(keyword)) {
+                        String carBrand = keyword2BrandMap.get(keyword);
+                        if (brand2BrandIDMap.containsKey(carBrand)) {
+                            extractedCarBrands.add(carBrand);
+                            extractedCarBrandIds.add(brand2BrandIDMap.get(carBrand));
+                        } else {
+                            extractedCarBrands.add(FSConsts.NO_CAR_BRAND);
+                        }
+                    }
+
+                    // 上面已经对汽车品牌处理，接下来是要对车系进行分析；如果再出现汽车品牌，则需要过滤。
+                    if (cyberBrand2OfficialBrandMap.containsKey(keyword) || cyberBrand2OfficialBrandMap.containsValue(keyword)) {
+                        continue;
+                    }
+
+                    if (cyberSerie2SerieIDMap.containsKey(keyword)) {
+                        String offcialSerie = cyberSerie2OfficialSerieMap.get(keyword);
+                        if (offcialSerie != null) {
+                            extractedCarSeries.add(offcialSerie);
+                        }
+                        extractedCarSerieIds.add(cyberSerie2SerieIDMap.get(keyword));
+                    } else {
+                        extractedCarSeries.add(FSConsts.NO_CAR_BRAND);
+                    }
+                }
+            }
+
+            // 如果是从标题中提取的品牌关键词，判断关键词数目，并根据关键词数目设置主体品牌、主体车系、主体品牌ID、主体车系ID
+            if (!isExtractedFromComment) {
+                if (extractedCarBrands.size() == 1 && !extractedCarBrands.contains(FSConsts.NO_CAR_BRAND)) {
+                    String carBrand = extractedCarBrands.iterator().next();
+                    String carBrandId = extractedCarBrandIds.iterator().next();
+                    nlpDoc.setPrincipalBrand(carBrand);
+                    nlpDoc.setPrincipalCarBrandId(carBrandId);
+                }
+                if (extractedCarBrands.size() == 1 && extractedCarSeries.size() == 1 && !extractedCarSeries.contains(FSConsts.NO_CAR_BRAND)) {
+                    String carSerie = extractedCarSeries.iterator().next();
+                    String carSerieId = extractedCarSerieIds.iterator().next();
+                    nlpDoc.setPrincipalSerie(carSerie);
+                    nlpDoc.setPrincipalCarSerieId(carSerieId);
+                }
+            }
+
+            // 删除`extractedCarBrands`和`extractedCarSeries`中的`#`
+            Set<String> tempCarBrands = new HashSet<>();
+            Set<String> tempCarSeries = new HashSet<>();
+            if (!extractedCarBrands.contains(FSConsts.NO_CAR_BRAND)) {
+                tempCarBrands.addAll(extractedCarBrands);
+            } else {
+                for (String brand : extractedCarBrands) {
+                    if (!FSConsts.NO_CAR_BRAND.equals(brand)) {
+                        tempCarBrands.add(brand);
+                    }
+                }
+            }
+
+            if (!extractedCarSeries.contains(FSConsts.NO_CAR_BRAND)) {
+                tempCarSeries.addAll(extractedCarSeries);
+            } else {
+                for (String serie : extractedCarSeries) {
+                    if (!FSConsts.NO_CAR_BRAND.equals(serie)) {
+                        tempCarSeries.add(serie);
+                    }
+                }
+            }
+            nlpDoc.setExtractedCarBrands(tempCarBrands);
+            nlpDoc.setExtractedCarSeries(tempCarSeries);
+            nlpDoc.setExtractedCarBrandIds(extractedCarBrandIds);
+            nlpDoc.setExtractedCarSerieIds(extractedCarSerieIds);
+        }
+    }
+
+    /**
+     * 提取标题和正文中所有的汽车品牌、汽车车系、品牌ID和车系ID。业务需求如下：
+     * 1、标题中0个品牌
+     * -1.1、主体报道为0
+     * -1.2、相关报道
+     * --1.2.1、正文大于20个品牌的时候，去掉
+     * --1.2.2、正文小于20个品牌，只看正文的所有品牌
+     * ========================================================================================================
+     * 2、标题中出现2个及以上的品牌
+     * -2.1、主体报道为空
+     * -2.2、相关报道：a.正文的品牌小于20个，标题+正文的所有品牌; b.正文的品牌数大于20个，只看标题的品牌数;
+     * ========================================================================================================
+     * 3、标题中只出现1个品牌
+     * -3.1、主体报道：
+     * --3.1.1、标题品牌和正文最高词频的品牌一致时；主体报道看标题
+     * --3.1.2、标题品牌和正文最高词频的品牌不一致时；符合标题党规则（正文最高品牌词频>1）主体报道为空；反之，主体报道看标题。
+     * -3.2、相关报道：
+     * --3.2.1、正文大于20个品牌的时候，只看标题
+     * --3.2.2、正文小于20个品牌，标题+正文的所有品牌
+     *
+     * @param nlpDoc  结果实体类
+     * @param title   媒体文章标题
+     * @param comment 媒体文章正文
+     */
+    public void principalAndCorrelatedBrandClassify(NewsNLPResult nlpDoc, String title, String comment) {
+        FreqDist<String> freqDistTitle = new FreqDist<>();
+        if (title != null && title.length() > 1) {
+            // 删除标题中的空白符，转换成英文小写，再进行品牌和车系的提取
+            title = title.toLowerCase().replaceAll(" ", "");
+            List<String> titleKeywords = ExtractUtils.simpleBackwardMaxMatch(title, keyword2BrandMap, MAX_WORD_LENGTH, MIN_WORD_LENGTH);
+            titleKeywords = CarBrandAndSerieUtil.removeSpecialSeries(title, titleKeywords);
+            for (String titleBrandOrSerie : titleKeywords) {
+                freqDistTitle.incr(keyword2BrandMap.get(titleBrandOrSerie));
+            }
+            Set<String> extractedCarBrands = new HashSet<>();
+            Set<String> extractedCarBrandIds = new HashSet<>();
+            Set<String> extractedCarSeries = new HashSet<>();
+            Set<String> extractedCarSerieIds = new HashSet<>();
+            Set<String> extractedCarBrandsFromTitle = new HashSet<>();
+            Set<String> extractedCarBrandIdsFromTitle = new HashSet<>();
+            Set<String> extractedCarSeriesFromTitle = new HashSet<>();
+            Set<String> extractedCarSerieIdsFromTitle = new HashSet<>();
+
+            // 标题
+            for (String titleKeyword : titleKeywords) {
+                if (keyword2BrandMap.containsKey(titleKeyword)) {
+                    String offcialCarBrand = keyword2BrandMap.get(titleKeyword);
+                    if (brand2BrandIDMap.containsKey(offcialCarBrand)) {
+                        extractedCarBrands.add(offcialCarBrand);
+                        extractedCarBrandIds.add(brand2BrandIDMap.get(offcialCarBrand));
+                        extractedCarBrandsFromTitle.add(offcialCarBrand);
+                        extractedCarBrandIdsFromTitle.add(brand2BrandIDMap.get(offcialCarBrand));
+                    }
+                }
+                if (cyberSerie2SerieIDMap.containsKey(titleKeyword)) {
+                    String offcialSerie = cyberSerie2OfficialSerieMap.get(titleKeyword);
+                    if (serie2SerieIDMap.containsKey(offcialSerie)) {
+                        extractedCarSeries.add(offcialSerie);
+                        extractedCarSerieIds.add(serie2SerieIDMap.get(offcialSerie));
+                        extractedCarSeriesFromTitle.add(offcialSerie);
+                        extractedCarSerieIdsFromTitle.add(serie2SerieIDMap.get(offcialSerie));
+                    }
+                }
+            }
+
+            // 存储正文的品牌个数
+            List<String> commentKeywords = new ArrayList<>();
+            FreqDist<String> freqDistComment = new FreqDist<>();
+            // 需要提前判别正文是否为空，再对正文提取到品牌个数进行比较
+            if (comment != null && comment.length() > 1) {
+                comment = comment.toLowerCase().replaceAll(" ", "");
+                commentKeywords = ExtractUtils.simpleBackwardMaxMatch(comment, keyword2BrandMap, MAX_WORD_LENGTH, MIN_WORD_LENGTH);
+                commentKeywords = CarBrandAndSerieUtil.removeSpecialSeries(comment, commentKeywords);
+                for (String commentBrandOrSerie : commentKeywords) {
+                    freqDistComment.incr(keyword2BrandMap.get(commentBrandOrSerie));
+                }
+                for (String commentKeyword : commentKeywords) {
+                    if (keyword2BrandMap.containsKey(commentKeyword)) {
+                        String offcialCarBrand = keyword2BrandMap.get(commentKeyword);
+                        if (brand2BrandIDMap.containsKey(offcialCarBrand)) {
+                            extractedCarBrands.add(offcialCarBrand);
+                            extractedCarBrandIds.add(brand2BrandIDMap.get(offcialCarBrand));
+                        }
+                    }
+                    if (cyberSerie2SerieIDMap.containsKey(commentKeyword)) {
+                        String offcialSerie = cyberSerie2OfficialSerieMap.get(commentKeyword);
+                        if (serie2SerieIDMap.containsKey(offcialSerie)) {
+                            extractedCarSeries.add(offcialSerie);
+                            extractedCarSerieIds.add(serie2SerieIDMap.get(offcialSerie));
+                        }
+                    }
+                }
+
+                // 1、标题出现0个品牌，也就是主体报道为空，接下来就要对正文进行分析
+                if (CollectionUtils.isEmpty(titleKeywords)) {
+                    // 正文的品牌数据量小于20个时，正文的所有品牌即为相关报道
+                    if (freqDistComment.size() <= 20) {
+                        nlpDoc.setExtractedCarBrands(extractedCarBrands);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIds);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeries);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIds);
+                    }
+                    // 2、标题中出现2个及以上的品牌，也就是主体报道为空，接下来就要对正文进行分析
+                } else if (freqDistTitle.size() > 1) {
+                    // 2.2、相关报道：a.正文的品牌小于20个，标题+正文的所有品牌;
+                    if (freqDistComment.size() <= 20) {
+                        nlpDoc.setExtractedCarBrands(extractedCarBrands);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIds);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeries);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIds);
+                    } else {
+                        // 2.2、相关报道：b.正文大于20个品牌时，此时相关报道只看标题
+                        nlpDoc.setExtractedCarBrands(extractedCarBrandsFromTitle);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIdsFromTitle);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeriesFromTitle);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIdsFromTitle);
+                    }
+                    // 3、标题中只有1个品牌，但要分析正文出现的最高词频的品牌是否跟标题是一致的。
+                } else if (freqDistTitle.size() == 1) {
+                    // 主体报道：此时的标题品牌为1个，比较整个正文出现词频最高的品牌，是否跟标题的品牌一样
+                    if (freqDistTitle.uniqMax().equals(freqDistComment.uniqMax())) {
+                        if (extractedCarBrandsFromTitle.size() == 1) {
+                            String carBrand = extractedCarBrandsFromTitle.iterator().next();
+                            String carBrandId = extractedCarBrandIdsFromTitle.iterator().next();
+                            nlpDoc.setPrincipalBrand(carBrand);
+                            nlpDoc.setPrincipalCarBrandId(carBrandId);
+                        }
+                        if (extractedCarSeriesFromTitle.size() > 0) {
+                            String carSerie = extractedCarSeriesFromTitle.iterator().next();
+                            String carSerieId = extractedCarSerieIdsFromTitle.iterator().next();
+                            nlpDoc.setPrincipalSerie(carSerie);
+                            nlpDoc.setPrincipalCarSerieId(carSerieId);
+                        }
+                    } else {
+                        // 标题词频最高的品牌跟正文词频最高的品牌不一致，而且正文最高词频小于1，主体报道看标题
+                        if (freqDistComment.getCount(freqDistComment.uniqMax()) <= 2) {
+                            if (extractedCarBrandsFromTitle.size() > 0) {
+                                String carBrand = extractedCarBrandsFromTitle.iterator().next();
+                                String carBrandId = extractedCarBrandIdsFromTitle.iterator().next();
+                                nlpDoc.setPrincipalBrand(carBrand);
+                                nlpDoc.setPrincipalCarBrandId(carBrandId);
+                            }
+                            if (extractedCarSeriesFromTitle.size() > 0) {
+                                String carSerie = extractedCarSeriesFromTitle.iterator().next();
+                                String carSerieId = extractedCarSerieIdsFromTitle.iterator().next();
+                                nlpDoc.setPrincipalSerie(carSerie);
+                                nlpDoc.setPrincipalCarSerieId(carSerieId);
+                            }
+                        }
+                    }
+                    // 3.2、相关报道：a.正文的品牌小于20个，标题+正文的所有品牌;
+                    if (freqDistComment.size() <= 20) {
+                        nlpDoc.setExtractedCarBrands(extractedCarBrands);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIds);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeries);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIds);
+                    } else {
+                        // 3.2、相关报道：b.正文大于20个品牌时，此时相关报道只看标题
+                        nlpDoc.setExtractedCarBrands(extractedCarBrandsFromTitle);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIdsFromTitle);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeriesFromTitle);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIdsFromTitle);
+                    }
+                }
+            } else {
+                if (freqDistTitle.size() == 1) {
+                    if (extractedCarBrandsFromTitle.size() > 0) {
+                        String carBrand = extractedCarBrandsFromTitle.iterator().next();
+                        String carBrandId = extractedCarBrandIdsFromTitle.iterator().next();
+                        nlpDoc.setPrincipalBrand(carBrand);
+                        nlpDoc.setPrincipalCarBrandId(carBrandId);
+                    }
+                    if (extractedCarSeriesFromTitle.size() > 0) {
+                        String carSerie = extractedCarSeriesFromTitle.iterator().next();
+                        String carSerieId = extractedCarSerieIdsFromTitle.iterator().next();
+                        nlpDoc.setPrincipalSerie(carSerie);
+                        nlpDoc.setPrincipalCarSerieId(carSerieId);
+                    }
+                }else {
+                    // 标题有大于2个品牌时，此时的标题列为相关报道
+                    nlpDoc.setExtractedCarBrands(extractedCarBrandsFromTitle);
+                    nlpDoc.setExtractedCarBrandIds(extractedCarBrandIdsFromTitle);
+                    nlpDoc.setExtractedCarSeries(extractedCarSeriesFromTitle);
+                    nlpDoc.setExtractedCarSerieIds(extractedCarSerieIdsFromTitle);
+                }
+            }
+        }
+    }
+
+
+    public String principalAndCorrelatedBrandClassify2(NewsNLPResult nlpDoc, String title, String comment) {
+        FreqDist<String> freqDistTitle = new FreqDist<>();
+        double percentage = 0;
+        double percentageSerie = 0;
+        //Intialization
+        nlpDoc.setPrincipalBrand(null);
+        nlpDoc.setPrincipalCarBrandId(null);
+        nlpDoc.setPrincipalSerie(null);
+        nlpDoc.setPrincipalCarSerieId(null);
+
+        if (title != null && title.length() > 1) {
+            // 删除标题中的空白符，转换成英文小写，再进行品牌和车系的提取
+            title = title.toLowerCase().replaceAll(" ", "");
+            List<String> titleKeywords = ExtractUtils.simpleBackwardMaxMatch(title, keyword2BrandMap, MAX_WORD_LENGTH, MIN_WORD_LENGTH);
+            titleKeywords = CarBrandAndSerieUtil.removeSpecialSeries(title, titleKeywords);
+            for (String titleBrandOrSerie : titleKeywords) {
+                freqDistTitle.incr(keyword2BrandMap.get(titleBrandOrSerie));
+            }
+            Set<String> extractedCarBrands = new HashSet<>();
+            Set<String> extractedCarBrandIds = new HashSet<>();
+            Set<String> extractedCarSeries = new HashSet<>();
+            Set<String> extractedCarSerieIds = new HashSet<>();
+            Set<String> extractedCarBrandsFromTitle = new HashSet<>();
+            Set<String> extractedCarBrandIdsFromTitle = new HashSet<>();
+            Set<String> extractedCarSeriesFromTitle = new HashSet<>();
+            Set<String> extractedCarSerieIdsFromTitle = new HashSet<>();
+            //----新增
+            Set<String> principalBrands = new HashSet<>();
+            Set<String> principalBrandIds = new HashSet<>();
+            Set<String> principalSeries = new HashSet<>();
+            Set<String> principalSerieIds = new HashSet<>();
+
+            // 标题
+//            for (String titleKeyword : titleKeywords) {
+//                if (keyword2BrandMap.containsKey(titleKeyword)) {
+//                    String offcialCarBrand = keyword2BrandMap.get(titleKeyword);
+//                    if (brand2BrandIDMap.containsKey(offcialCarBrand)) {
+//                        extractedCarBrands.add(offcialCarBrand);
+//                        extractedCarBrandIds.add(brand2BrandIDMap.get(offcialCarBrand));
+//                        extractedCarBrandsFromTitle.add(offcialCarBrand);
+//                        extractedCarBrandIdsFromTitle.add(brand2BrandIDMap.get(offcialCarBrand));
+//                    }
+//                }
+//                if (cyberSerie2SerieIDMap.containsKey(titleKeyword)) {
+//                    String offcialSerie = cyberSerie2OfficialSerieMap.get(titleKeyword);
+//                    if (serie2SerieIDMap.containsKey(offcialSerie)) {
+//                        extractedCarSeries.add(offcialSerie);
+//                        extractedCarSerieIds.add(serie2SerieIDMap.get(offcialSerie));
+//                        extractedCarSeriesFromTitle.add(offcialSerie);
+//                        extractedCarSerieIdsFromTitle.add(serie2SerieIDMap.get(offcialSerie));
+//                    }
+//                }
+//            }
+
+
+            // 存储正文的品牌个数
+            List<String> commentKeywords = new ArrayList<>();
+            FreqDist<String> freqDistComment = new FreqDist<>();
+            FreqDist<String> freqDistCommentSerie = new FreqDist<>();
+            // 需要提前判别正文是否为空，再对正文提取到品牌个数进行比较
+
+            if (comment != null && comment.length() > 1) {
+                comment = comment.toLowerCase().replaceAll(" ", "");
+                commentKeywords = ExtractUtils.simpleBackwardMaxMatch(comment, keyword2BrandMap, MAX_WORD_LENGTH, MIN_WORD_LENGTH);
+                commentKeywords = CarBrandAndSerieUtil.removeSpecialSeries(comment, commentKeywords);
+
+                for (String commentBrandOrSerie : commentKeywords) {
+                    //---------这里是匹配为车品牌
+                    freqDistComment.incr(keyword2BrandMap.get(commentBrandOrSerie));
+                    //---------这里匹配车系
+                    if (cyberSerie2OfficialSerieMap.containsKey(commentBrandOrSerie)){
+                        freqDistCommentSerie.incr(cyberSerie2OfficialSerieMap.get(commentBrandOrSerie));
+                        //这里再通过官方车系表对应回车品牌然后增加到freqDistComment里面
+                        if (cyberSerie2OfficialBrandMap.containsKey(commentBrandOrSerie)){
+                            freqDistComment.incr(cyberSerie2OfficialBrandMap.get(commentBrandOrSerie));
+                        }
+                    }
+                    //此处将其他车系的也添加进去
+                    else if (otherCyberSerie2OfficialSerieMap.containsKey(commentBrandOrSerie)){
+                        freqDistCommentSerie.incr(otherCyberSerie2OfficialSerieMap.get(commentBrandOrSerie));
+                        if (otherCyberSerie2OfficialBrandMap.containsKey(commentBrandOrSerie)){
+                            freqDistComment.incr(otherCyberSerie2OfficialBrandMap.get(commentBrandOrSerie));
+                        }
+                    }
+
+                }
+
+
+                for (String commentKeyword : commentKeywords) {
+                    if (keyword2BrandMap.containsKey(commentKeyword)) {
+                        String offcialCarBrand = keyword2BrandMap.get(commentKeyword);
+                        if (brand2BrandIDMap.containsKey(offcialCarBrand)) {
+                            extractedCarBrands.add(offcialCarBrand);
+                            extractedCarBrandIds.add(brand2BrandIDMap.get(offcialCarBrand));
+                        }
+                    }
+                    if (cyberSerie2SerieIDMap.containsKey(commentKeyword)) {
+                        String offcialSerie = cyberSerie2OfficialSerieMap.get(commentKeyword);
+                        if (serie2SerieIDMap.containsKey(offcialSerie)) {
+                            extractedCarSeries.add(offcialSerie);
+                            extractedCarSerieIds.add(serie2SerieIDMap.get(offcialSerie));
+                        }
+                    }
+                }
+
+                // 1、标题出现0个品牌，也就是主体报道为空，接下来就要对正文进行分析
+                if (CollectionUtils.isEmpty(titleKeywords)) {
+                    // 正文的品牌数据量小于20个时，正文的所有品牌即为相关报道
+                    if (freqDistComment.size() <= 20) {
+                        nlpDoc.setExtractedCarBrands(extractedCarBrands);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIds);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeries);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIds);
+                    }
+                    // 2、标题中出现2个及以上的品牌，也就是主体报道为空，接下来就要对正文进行分析
+                } else if (freqDistTitle.size() > 1) {
+                    // 2.2、相关报道：a.正文的品牌小于20个，标题+正文的所有品牌;
+                    if (freqDistComment.size() <= 20) {
+                        nlpDoc.setExtractedCarBrands(extractedCarBrands);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIds);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeries);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIds);
+                    } else {
+                        // 2.2、相关报道：b.正文大于20个品牌时，此时相关报道只看标题
+                        nlpDoc.setExtractedCarBrands(extractedCarBrandsFromTitle);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIdsFromTitle);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeriesFromTitle);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIdsFromTitle);
+                    }
+                    // 3、标题中只有1个品牌，但要分析正文出现的最高词频的品牌是否跟标题是一致的。
+                } else if (freqDistTitle.size() == 1) {
+                    // 主体报道：此时的标题品牌为1个，比较整个正文出现词频最高的品牌，是否跟标题的品牌一样
+                    if (freqDistTitle.uniqMax().equals(freqDistComment.uniqMax())) {
+                        if (extractedCarBrandsFromTitle.size() == 1) {
+                            String carBrand = extractedCarBrandsFromTitle.iterator().next();
+                            String carBrandId = extractedCarBrandIdsFromTitle.iterator().next();
+//                            nlpDoc.setPrincipalBrand(carBrand);
+//                            nlpDoc.setPrincipalCarBrandId(carBrandId);
+                        }
+                        if (extractedCarSeriesFromTitle.size() > 0) {
+                            String carSerie = extractedCarSeriesFromTitle.iterator().next();
+                            String carSerieId = extractedCarSerieIdsFromTitle.iterator().next();
+//                            nlpDoc.setPrincipalSerie(carSerie);
+//                            nlpDoc.setPrincipalCarSerieId(carSerieId);
+                        }
+                    } else {
+                        // 标题词频最高的品牌跟正文词频最高的品牌不一致，而且正文最高词频小于1，主体报道看标题
+                        if (freqDistComment.getCount(freqDistComment.uniqMax()) <= 2) {
+                            if (extractedCarBrandsFromTitle.size() > 0) {
+                                String carBrand = extractedCarBrandsFromTitle.iterator().next();
+                                String carBrandId = extractedCarBrandIdsFromTitle.iterator().next();
+//                                nlpDoc.setPrincipalBrand(carBrand);
+//                                nlpDoc.setPrincipalCarBrandId(carBrandId);
+                            }
+                            if (extractedCarSeriesFromTitle.size() > 0) {
+                                String carSerie = extractedCarSeriesFromTitle.iterator().next();
+                                String carSerieId = extractedCarSerieIdsFromTitle.iterator().next();
+//                                nlpDoc.setPrincipalSerie(carSerie);
+//                                nlpDoc.setPrincipalCarSerieId(carSerieId);
+                            }
+                        }
+                    }
+                    // 3.2、相关报道：a.正文的品牌小于20个，标题+正文的所有品牌;
+                    if (freqDistComment.size() <= 20) {
+                        nlpDoc.setExtractedCarBrands(extractedCarBrands);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIds);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeries);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIds);
+                    } else {
+                        // 3.2、相关报道：b.正文大于20个品牌时，此时相关报道只看标题
+                        nlpDoc.setExtractedCarBrands(extractedCarBrandsFromTitle);
+                        nlpDoc.setExtractedCarBrandIds(extractedCarBrandIdsFromTitle);
+                        nlpDoc.setExtractedCarSeries(extractedCarSeriesFromTitle);
+                        nlpDoc.setExtractedCarSerieIds(extractedCarSerieIdsFromTitle);
+                    }
+                }
+            } else {
+                if (freqDistTitle.size() == 1) {
+                    if (extractedCarBrandsFromTitle.size() > 0) {
+                        String carBrand = extractedCarBrandsFromTitle.iterator().next();
+                        String carBrandId = extractedCarBrandIdsFromTitle.iterator().next();
+//                        nlpDoc.setPrincipalBrand(carBrand);
+//                        nlpDoc.setPrincipalCarBrandId(carBrandId);
+                    }
+                    if (extractedCarSeriesFromTitle.size() > 0) {
+                        String carSerie = extractedCarSeriesFromTitle.iterator().next();
+                        String carSerieId = extractedCarSerieIdsFromTitle.iterator().next();
+//                        nlpDoc.setPrincipalSerie(carSerie);
+//                        nlpDoc.setPrincipalCarSerieId(carSerieId);
+                    }
+                }else {
+                    // 标题有大于2个品牌时，此时的标题列为相关报道
+                    nlpDoc.setExtractedCarBrands(extractedCarBrandsFromTitle);
+                    nlpDoc.setExtractedCarBrandIds(extractedCarBrandIdsFromTitle);
+                    nlpDoc.setExtractedCarSeries(extractedCarSeriesFromTitle);
+                    nlpDoc.setExtractedCarSerieIds(extractedCarSerieIdsFromTitle);
+                }
+            }
+
+            //------车品牌统计
+            Map<String,Integer> freqDist = freqDistComment;
+            String maxFreqKey = "";
+            int maxFreqVal = 0;
+            int count = 0;
+            double getPercentage;
+
+            for (String key : freqDist.keySet()){
+                if (freqDist.get(key) > maxFreqVal){
+                    maxFreqVal = freqDist.get(key);
+                    maxFreqKey = key;
+                    count = count + freqDist.get(key);
+                    continue;
+                }else{
+                    count = count + freqDist.get(key);
+                }
+            }
+            getPercentage = (maxFreqVal*1.0/count*1.0);
+            percentage = getPercentage;
+            Boolean isReachThreshold = (getPercentage > 0);
+            if ( count !=0 && isReachThreshold){
+                if(brand2BrandIDMap.containsKey(maxFreqKey)){
+                    principalBrands.add(maxFreqKey);
+                    principalBrandIds.add(brand2BrandIDMap.get(maxFreqKey));
+                }
+                Iterator<String> iterator=principalBrands.iterator();
+                if(iterator.hasNext()){
+                    String principalBrandsElement = principalBrands.iterator().next();
+                    nlpDoc.setPrincipalBrand(principalBrandsElement);
+                }
+                Iterator<String> iterator2=principalBrandIds.iterator();
+                if(iterator2.hasNext()){
+                    String principalBrandIdsElement = principalBrandIds.iterator().next();
+                    nlpDoc.setPrincipalCarBrandId(principalBrandIdsElement);
+                }
+            }
+
+            //------车系统计
+            Map<String,Integer> freqDistSerie = freqDistCommentSerie;
+            String maxSerieFreqKey = "";
+            int maxSerieFreqVal = 0;
+            int countSerie = 0;
+            double getSeriePercentage;
+
+            for (String key : freqDistSerie.keySet()){
+                if (freqDistSerie.get(key) > maxSerieFreqVal){
+                    maxSerieFreqVal = freqDistSerie.get(key);
+                    maxSerieFreqKey = key;
+                    countSerie = countSerie + freqDistSerie.get(key);
+                    continue;
+                }else{
+                    countSerie = countSerie + freqDistSerie.get(key);
+                }
+            }
+            getSeriePercentage = (maxSerieFreqVal*1.0/countSerie*1.0);
+            percentageSerie = getSeriePercentage;
+            Boolean isReachSerieThreshold = (getPercentage > 0);
+            if ( countSerie !=0 && isReachSerieThreshold){
+
+                if(serie2SerieIDMap.containsKey(maxSerieFreqKey)) {
+                    // -- no need to turn cyberSerie to officialSerie because i
+                    //String officialSerie = cyberSerie2OfficialSerieMap.get(maxSerieFreqKey);
+                    if (serie2SerieIDMap.containsKey(maxSerieFreqKey)) {
+                        principalSeries.add(maxSerieFreqKey);
+                        principalSerieIds.add(serie2SerieIDMap.get(maxSerieFreqKey));
+                    }
+                }
+                //添加其他车系进去
+                else if (otherSerie2SerieIdMap.containsKey(maxSerieFreqKey)){
+                    if (otherSerie2SerieIdMap.containsKey(maxSerieFreqKey)){
+                        principalSeries.add(maxSerieFreqKey);
+                        principalBrandIds.add(otherSerie2SerieIdMap.get(maxSerieFreqKey));
+                    }
+                }
+
+
+                Iterator<String> iterator3=principalSeries.iterator();
+                if(iterator3.hasNext()){
+                    String principalSeriesElement = principalSeries.iterator().next();
+                    nlpDoc.setPrincipalSerie(principalSeriesElement);
+                }
+                Iterator<String> iterator4=principalSerieIds.iterator();
+                if(iterator4.hasNext()){
+                    String principalSerieIdsElement = principalSerieIds.iterator().next();
+                    nlpDoc.setPrincipalCarSerieId(principalSerieIdsElement);
+                }
+            }
+        }
+        return (Math.round(percentage*100) + "%," + Math.round(percentageSerie*100) + "%");
+    }
+
+    /**
+     * 媒体文章是否是主体报道或相关报道的测试用例
+     */
+    public static void main(String[] args) {
+        DaoFactory.initDao("./src/main/resources/poolConfig-volvo.xml");
+        CorrelationClassifierVolvo classifier = new CorrelationClassifierVolvo("汽车");
+        NewsNLPResult nlpResult = new NewsNLPResult();
+        String inPath = "D:\\Data\\语料\\input.txt";
+        String outPath = "D:\\Data\\语料\\output.txt";
+        String encoding = "utf-8";
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(outPath), encoding));
+            List<String> lines = IOUtil.readLines(new FileInputStream(inPath), encoding);
+            // ---- 写表头
+            writer.println("文章标题\t文章网址\t(品牌+车系对应品牌)提及最高占比\t最高提及车品牌\t最高提及车品牌id\t车系提及最高占比\t最高提及车系\t最高提及车系id\t文本内容\t车品牌\t车品牌id\t车系\t车系id");
+
+            int counter = 0;
+            int totalCommentNum = lines.size();
+            for (String line : lines) {
+                counter++;
+                System.out.format("总共有 %d 条数据，现在分析第 %d 条，已经完成了 %.4f%%%n", totalCommentNum, counter, (double) (counter - 1) / totalCommentNum * 100);
+                String[] cols = line.split("\\t", -1);
+                if (cols.length != 11) {
+                    continue;
+                }
+                //按照制表符读取数据列
+                String articleTitle = cols[0];
+                String comment = cols[1];
+                String articleUrlStr = cols[2];
+
+                String principalBrandsStr = cols[3];
+                String principalCarBrandIdsStr = cols[4];
+                String principalSeriesStr = cols[5];
+                String principalCarSerieIdsStr = cols[6];
+                String extractedCarBrandsStr = cols[7];
+                String extractedCarBrandIdsStr = cols[8];
+                String extractedCarSeriesStr = cols[9];
+                String extractedCarSerieIdsStr = cols[10];
+                //------------Start Analysis--------------
+
+//                classifier.principalAndCorrelatedBrandClassify(nlpResult, articleTitle, comment);
+
+                String analyzedString = classifier.principalAndCorrelatedBrandClassify2(nlpResult, articleTitle, comment);
+                String[] col = analyzedString.split(",");
+
+                //------------End of Analysis--------------
+                writer.println(articleTitle +  "\t" + articleUrlStr + "\t" + col[0] + "\t" +
+                        nlpResult.getPrincipalBrand() + "\t" + nlpResult.getPrincipalCarBrandId() + "\t" +
+                        col[1] + "\t" +
+                        nlpResult.getPrincipalSerie() + "\t" + nlpResult.getPrincipalCarSerieId() + "\t" +
+                        comment + "\t" +
+                        extractedCarBrandsStr + "\t" + extractedCarBrandIdsStr + "\t" +
+                        extractedCarSeriesStr + "\t" + extractedCarSerieIdsStr
+                );
+//                writer.println(articleTitle +  "\t" + articleUrlStr + "\t" +
+//                        nlpResult.getPrincipalBrand() + "\t" + nlpResult.getPrincipalCarBrandId() + "\t" +
+//                        nlpResult.getPrincipalSerie() + "\t" + nlpResult.getPrincipalCarSerieId() + "\t" +
+//
+//                        comment + "\t" +
+//                        nlpResult.getExtractedCarBrands() + "\t" + nlpResult.getExtractedCarBrandIds() + "\t" +
+//                        nlpResult.getExtractedCarSeries() + "\t" + nlpResult.getExtractedCarSerieIds()
+//                );
+            }
+            System.out.println("分析结束(￣▽￣)／");
+        } catch (FileNotFoundException e) {
+            System.out.println("The file does not exist or the path is not correct!");
+            System.exit(-1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (writer != null) {
+                writer.close();
+            }
+        }
+    }
+
+}

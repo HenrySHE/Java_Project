@@ -948,6 +948,38 @@ Wheel[3] value is: 3
 ### final类
 如果你定义了final类,那么表示**你不打算继承该类，而且也不允许别人这样做。**。出于某种考虑，你对该类的设计永远不需要做任何变动，你也不希望它有子类。
 
+2019年9月23日
+## Enum 枚举类型
+文件:`TestIntialization/SimpleEnumUse.java`
+
+```java
+public enum Spiciness{
+  ERSHIYUAN,SHIYUAN,WUYUAN,YIYUAN,YIJIAO,YIFEN
+}
+
+public class SimpleEnumUse{
+  public static void main(String[] args){
+    /*默认方法:
+    1. values() -- 用来遍历所有的枚举的内容
+    2. Ordinal() -- 应该是顺序
+    3. toString() -- 将枚举对象转换为String(在打印结果的时候直接调用toString)
+    */
+    for (Spiciness s : Spiciness.values()){
+      System.out.println(s + " ,ordinal "+ s.ordinal());
+    }
+    System.out.println(Spiciness.SHIYUAN.toString());
+  }
+}
+/*
+ERSHIYUAN ,ordinal 0
+SHIYUAN ,ordinal 1
+WUYUAN ,ordinal 2
+YIYUAN ,ordinal 3
+YIJIAO ,ordinal 4
+YIFEN ,ordinal 5
+SHIYUAN
+*/
+```
 
 
 To be continued..
