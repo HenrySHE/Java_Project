@@ -413,6 +413,9 @@ public class CorrelationClassifierVolvo {
         if (title != null && title.length() > 1) {
             // 删除标题中的空白符，转换成英文小写，再进行品牌和车系的提取
             title = title.toLowerCase().replaceAll(" ", "");
+//            Map<String, String> tempMap = new ConcurrentHashMap<>(16);
+//            tempMap.put("领克03cyan","领克");
+            //keyword2BrandMap
             List<String> titleKeywords = ExtractUtils.simpleBackwardMaxMatch(title, keyword2BrandMap, MAX_WORD_LENGTH, MIN_WORD_LENGTH);
             titleKeywords = CarBrandAndSerieUtil.removeSpecialSeries(title, titleKeywords);
             for (String titleBrandOrSerie : titleKeywords) {
@@ -436,12 +439,12 @@ public class CorrelationClassifierVolvo {
             for (String titleKeyword : titleKeywords) {
                 if (keyword2BrandMap.containsKey(titleKeyword)) {
                     String offcialCarBrand = keyword2BrandMap.get(titleKeyword);
-                    if (brand2BrandIDMap.containsKey(offcialCarBrand)) {
-                        extractedCarBrands.add(offcialCarBrand);
-                        extractedCarBrandIds.add(brand2BrandIDMap.get(offcialCarBrand));
-                        extractedCarBrandsFromTitle.add(offcialCarBrand);
-                        extractedCarBrandIdsFromTitle.add(brand2BrandIDMap.get(offcialCarBrand));
-                    }
+//                    String offcialCarBrand = titleKeyword;
+//                    if (brand2BrandIDMap.containsKey(offcialCarBrand)) { }
+                    extractedCarBrands.add(offcialCarBrand);
+                    extractedCarBrandIds.add(brand2BrandIDMap.get(offcialCarBrand));
+                    extractedCarBrandsFromTitle.add(offcialCarBrand);
+                    extractedCarBrandIdsFromTitle.add(brand2BrandIDMap.get(offcialCarBrand));
                 }
                 if (cyberSerie2SerieIDMap.containsKey(titleKeyword)) {
                     String offcialSerie = cyberSerie2OfficialSerieMap.get(titleKeyword);
@@ -722,12 +725,12 @@ public class CorrelationClassifierVolvo {
                 String articleTitle = cols[0];
                 String comment = cols[1];
                 String articleUrlStr = cols[2];
-
+                //空值
                 String principalBrandsStr = cols[3];
                 String principalCarBrandIdsStr = cols[4];
                 String principalSeriesStr = cols[5];
                 String principalCarSerieIdsStr = cols[6];
-
+                //读取的提取的相关品牌, 相关车系
                 String extractedCarBrandsStr = cols[7];
                 String extractedCarBrandIdsStr = cols[8];
                 String extractedCarSeriesStr = cols[9];
