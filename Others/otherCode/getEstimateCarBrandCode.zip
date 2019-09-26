@@ -403,6 +403,7 @@ public class CorrelationClassifierVolvo {
         FreqDist<String> freqDistTitle = new FreqDist<>();
         double percentage = 0;
         double percentageSerie = 0;
+        Set<String> extractedCarBrandsFromTitleGlobal = new HashSet<>();
         //Intialization
         nlpDoc.setPrincipalBrand(null);
         nlpDoc.setPrincipalCarBrandId(null);
@@ -431,27 +432,28 @@ public class CorrelationClassifierVolvo {
             Set<String> principalSeries = new HashSet<>();
             Set<String> principalSerieIds = new HashSet<>();
 
-            // 标题
-//            for (String titleKeyword : titleKeywords) {
-//                if (keyword2BrandMap.containsKey(titleKeyword)) {
-//                    String offcialCarBrand = keyword2BrandMap.get(titleKeyword);
-//                    if (brand2BrandIDMap.containsKey(offcialCarBrand)) {
-//                        extractedCarBrands.add(offcialCarBrand);
-//                        extractedCarBrandIds.add(brand2BrandIDMap.get(offcialCarBrand));
-//                        extractedCarBrandsFromTitle.add(offcialCarBrand);
-//                        extractedCarBrandIdsFromTitle.add(brand2BrandIDMap.get(offcialCarBrand));
-//                    }
-//                }
-//                if (cyberSerie2SerieIDMap.containsKey(titleKeyword)) {
-//                    String offcialSerie = cyberSerie2OfficialSerieMap.get(titleKeyword);
-//                    if (serie2SerieIDMap.containsKey(offcialSerie)) {
-//                        extractedCarSeries.add(offcialSerie);
-//                        extractedCarSerieIds.add(serie2SerieIDMap.get(offcialSerie));
-//                        extractedCarSeriesFromTitle.add(offcialSerie);
-//                        extractedCarSerieIdsFromTitle.add(serie2SerieIDMap.get(offcialSerie));
-//                    }
-//                }
-//            }
+            // 标题分析
+            for (String titleKeyword : titleKeywords) {
+                if (keyword2BrandMap.containsKey(titleKeyword)) {
+                    String offcialCarBrand = keyword2BrandMap.get(titleKeyword);
+                    if (brand2BrandIDMap.containsKey(offcialCarBrand)) {
+                        extractedCarBrands.add(offcialCarBrand);
+                        extractedCarBrandIds.add(brand2BrandIDMap.get(offcialCarBrand));
+                        extractedCarBrandsFromTitle.add(offcialCarBrand);
+                        extractedCarBrandIdsFromTitle.add(brand2BrandIDMap.get(offcialCarBrand));
+                    }
+                }
+                if (cyberSerie2SerieIDMap.containsKey(titleKeyword)) {
+                    String offcialSerie = cyberSerie2OfficialSerieMap.get(titleKeyword);
+                    if (serie2SerieIDMap.containsKey(offcialSerie)) {
+                        extractedCarSeries.add(offcialSerie);
+                        extractedCarSerieIds.add(serie2SerieIDMap.get(offcialSerie));
+                        extractedCarSeriesFromTitle.add(offcialSerie);
+                        extractedCarSerieIdsFromTitle.add(serie2SerieIDMap.get(offcialSerie));
+                    }
+                }
+            }
+            extractedCarBrandsFromTitleGlobal = extractedCarBrandsFromTitle;
 
 
             // 存储正文的品牌个数
@@ -686,7 +688,9 @@ public class CorrelationClassifierVolvo {
                 }
             }
         }
-        return (Math.round(percentage*100) + "%," + Math.round(percentageSerie*100) + "%");
+        //turn set to String array
+        String[] extractedCarSeriesFromTitleArray = extractedCarBrandsFromTitleGlobal.toArray(new String[0]);
+        return (Arrays.toString(extractedCarSeriesFromTitleArray)+"#"+Math.round(percentage*100) + "%#" + Math.round(percentageSerie*100) + "%");
     }
 
     /**
@@ -696,7 +700,7 @@ public class CorrelationClassifierVolvo {
         DaoFactory.initDao("./src/main/resources/poolConfig-volvo.xml");
         CorrelationClassifierVolvo classifier = new CorrelationClassifierVolvo("汽车");
         NewsNLPResult nlpResult = new NewsNLPResult();
-        String inPath = "D:\\Data\\语料\\input.txt";
+        String inPath = "D:\\Data\\语料\\input1.txt";
         String outPath = "D:\\Data\\语料\\output.txt";
         String encoding = "utf-8";
         PrintWriter writer = null;
@@ -704,7 +708,7 @@ public class CorrelationClassifierVolvo {
             writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(outPath), encoding));
             List<String> lines = IOUtil.readLines(new FileInputStream(inPath), encoding);
             // ---- 写表头
-            writer.println("文章标题\t文章网址\t(品牌+车系对应品牌)提及最高占比\t最高提及车品牌\t最高提及车品牌id\t车系提及最高占比\t最高提及车系\t最高提及车系id\t文本内容\t车品牌\t车品牌id\t车系\t车系id");
+            writer.println("文章标题\t文章网址\t标题提取的车品牌\t(品牌+车系对应品牌)提及最高占比\t最高提及车品牌\t最高提及车品牌id\t车系提及最高占比\t最高提及车系\t最高提及车系id\t文本内容\t车品牌\t车品牌id\t车系\t车系id");
             int counter = 0;
             int totalCommentNum = lines.size();
             for (String line : lines) {
@@ -733,17 +737,18 @@ public class CorrelationClassifierVolvo {
 //                classifier.principalAndCorrelatedBrandClassify(nlpResult, articleTitle, comment);
 
                 String analyzedString = classifier.principalAndCorrelatedBrandClassify2(nlpResult, articleTitle, comment);
-                String[] col = analyzedString.split(",");
+                String[] col = analyzedString.split("#");
 
                 //------------End of Analysis--------------
-                writer.println(articleTitle +  "\t" + articleUrlStr + "\t" + col[0] + "\t" +
+                writer.println(articleTitle +  "\t" + articleUrlStr +"\t"+ col[0] +"\t" + col[1] + "\t" +
                         nlpResult.getPrincipalBrand() + "\t" + nlpResult.getPrincipalCarBrandId() + "\t" +
-                        col[1] + "\t" +
+                        col[2] + "\t" +
                         nlpResult.getPrincipalSerie() + "\t" + nlpResult.getPrincipalCarSerieId() + "\t" +
                         comment + "\t" +
                         extractedCarBrandsStr + "\t" + extractedCarBrandIdsStr + "\t" +
                         extractedCarSeriesStr + "\t" + extractedCarSerieIdsStr
                 );
+
 //                writer.println(articleTitle +  "\t" + articleUrlStr + "\t" +
 //                        nlpResult.getPrincipalBrand() + "\t" + nlpResult.getPrincipalCarBrandId() + "\t" +
 //                        nlpResult.getPrincipalSerie() + "\t" + nlpResult.getPrincipalCarSerieId() + "\t" +
@@ -752,6 +757,7 @@ public class CorrelationClassifierVolvo {
 //                        nlpResult.getExtractedCarBrands() + "\t" + nlpResult.getExtractedCarBrandIds() + "\t" +
 //                        nlpResult.getExtractedCarSeries() + "\t" + nlpResult.getExtractedCarSerieIds()
 //                );
+
             }
             System.out.println("分析结束(￣▽￣)／");
         } catch (FileNotFoundException e) {
