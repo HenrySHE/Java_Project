@@ -456,7 +456,9 @@ public class CorrelationClassifierVolvo {
 
             // 存储正文的品牌个数
             List<String> commentKeywords = new ArrayList<>();
+            // 存储车品牌
             FreqDist<String> freqDistComment = new FreqDist<>();
+            // 存储车系
             FreqDist<String> freqDistCommentSerie = new FreqDist<>();
             // 需要提前判别正文是否为空，再对正文提取到品牌个数进行比较
 
@@ -672,8 +674,6 @@ public class CorrelationClassifierVolvo {
                         principalBrandIds.add(otherSerie2SerieIdMap.get(maxSerieFreqKey));
                     }
                 }
-
-
                 Iterator<String> iterator3=principalSeries.iterator();
                 if(iterator3.hasNext()){
                     String principalSeriesElement = principalSeries.iterator().next();
@@ -705,7 +705,6 @@ public class CorrelationClassifierVolvo {
             List<String> lines = IOUtil.readLines(new FileInputStream(inPath), encoding);
             // ---- 写表头
             writer.println("文章标题\t文章网址\t(品牌+车系对应品牌)提及最高占比\t最高提及车品牌\t最高提及车品牌id\t车系提及最高占比\t最高提及车系\t最高提及车系id\t文本内容\t车品牌\t车品牌id\t车系\t车系id");
-
             int counter = 0;
             int totalCommentNum = lines.size();
             for (String line : lines) {
@@ -724,6 +723,7 @@ public class CorrelationClassifierVolvo {
                 String principalCarBrandIdsStr = cols[4];
                 String principalSeriesStr = cols[5];
                 String principalCarSerieIdsStr = cols[6];
+
                 String extractedCarBrandsStr = cols[7];
                 String extractedCarBrandIdsStr = cols[8];
                 String extractedCarSeriesStr = cols[9];
