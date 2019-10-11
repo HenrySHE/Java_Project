@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<!-- created by HenrySHE on 2019/10/08 -->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+  <div id="app">
+ 
+    </br></br></br>
+    <el-card calss="box-card">
+      <div slot="header">
+        <span style="font-size: 15px; text-align: justify">
+          <p style="font-size: 20px;"><b>文本分析 &nbsp;<i class="el-icon-data-line"></i></b></p>
+        </span>
+        <el-radio-group v-model="isOpinion">
+          <el-radio-button label="true">个人舆情</el-radio-button>
+          <el-radio-button lebel="false">媒体舆情</el-radio-button>
+        </el-radio-group>
+      </div>
+      
+      <el-form :label-position="labelPosition" ref="form" :model="form" label-width="110px" style="padding: 20px;">
+        <el-form-item 
+          v-if="isOpinion"
+          label="品牌:"
+          prop="brand"
+          :rules="{ required: true, message: '请选择品牌', trigger: 'change' }"
+          >
+          <el-select v-model="form.brand" placeholder="品牌选择">
+            <el-option label="上汽大众" value="sqdz"></el-option>
+            <el-option label="东风本田" value="dfbt"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item
+          v-if="isOpinion"
+          label="产品名称:" 
+          prop="product"
+          :rules="{ required: true, message: '请选择产品名称', trigger: 'change' }">
+          <el-select v-model="form.product" placeholder="名称选择">
+            <el-option label="POLO" value="polo"></el-option>
+            <el-option label="高尔夫" value="golf"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="主贴/回帖:" v-if="isOpinion">
+          <el-radio-group v-model="form.position">
+            <el-radio-button label="1" value="1">主贴</el-radio-button>
+            <el-radio-button lebel="3" value="3">回帖</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item 
+          label="标题:"
+          prop="newsTitle"
+          :rules="{ required: true, message: '请输入标题' ,trigger: 'blur'}"
+          >
+          <el-input v-model="form.newsTitle"></el-input>
+        </el-form-item>
+        <el-form-item 
+          label="正文:"
+          prop="newsContent"
+          :rules="{ required: true, message: '请输入正文', trigger:'blur'}"
+          >
+          <el-input type="textarea" v-model="form.newsContent"></el-input>
+        </el-form-item>
+        <el-form-item label="环境选择:" prop="env"
+          :rules="{required:true, message:'请选择环境', trigger: 'change'}">
+          <el-radio-group v-model="form.env">
+            <el-radio label="demo">demo</el-radio>
+            <el-radio label="changan">长安</el-radio>
+            <el-radio label="byd">比亚迪</el-radio>
+            <el-radio label="gmmc">广汽三菱</el-radio>
+            <el-radio label="volvo">沃尔沃</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item>
+          <el-button type="primary" @click="onSubmit('form')">开始分析</el-button>
+          <el-dialog :visible.sync="visible" title="Hi">
+            <p>hi</p>
+          </el-dialog>
+          <el-button type="primary" @click="clear('form')">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+  </br></br>
+    <div class="resultCard" v-if="showResult">
+      <el-card calss="box-card">
+        <div slot="header">
+          <span style="font-size: 15px;"><b>分析结果</b></span>
+          <!-- <h2>分析结果</h2> -->
+          <el-button style="float: right; padding: 3px 0" type="text" @click ="removeCard">删除结果</el-button>
+        </div>
+        <div>
+          <span><b>整体情感分析:</b>
+            <!-- <p id="mark"></p> -->
+          </span>
+          <el-tag :type="normalBtn == true ? 'success':'danger'" disabled>{{mark}}</el-tag>
+          
+        </div>
+        </br></br>
+        <div>
+            <span><b>关键词分析:</b></span> &nbsp;&nbsp;
+            </br>
+            <el-table
+              :data="tableData"
+              style="width:100%">
+              <el-table-column
+                prop="segment"
+                label="短句">
+              </el-table-column>
+              <el-table-column prop="keyword" label="关键词"></el-table-column>
+              <el-table-column prop="first" label="一级指标"></el-table-column>
+              <el-table-column prop="second" label="二级指标"></el-table-column>
+              <el-table-column prop="third" label="三级指标"></el-table-column>
+              <el-table-column prop="property" label="属性"></el-table-column>
+            </el-table>
+        </div>
+      </el-card>
+    </div>
+
+  </div>
+</body>
+  <!-- import Vue before Element -->
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <!-- import JavaScript -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <!-- import axios -->
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      data: function() {
+        return {
+          labelPosition:'left',
+          isOpinion: true,
+          visible: false,
+          visible2: false,
+          showResult: false,
+          normalBtn:true,
+          mark: '',
+          form:{
+            brand: '',
+            product: '',
+            position:'1',
+            newsTitle:'',
+            newsContent:'',
+            env: '',
+          },
+          tableData:[],
+
+        };
+      },
+      methods:{
+        onSubmit(f){
+          console.log("hello");
+          // this.visible = true;
+           this.$refs[f].validate((valid) => {
+            if (valid){
+              // 如果是个人舆情,走这个if进去,否则走else
+              if(this.isOpinion){
+
+                var product = "乐驰";
+                var productid = "151";
+                var env = this.form.env;
+                var position = this.form.position;
+                var nt = this.form.newsTitle;
+                var nc = this.form.newsContent;
+                var formData = new FormData();
+                formData.append("type","car");
+                formData.append("industry",env);
+                formData.append("title",nt);
+                formData.append("text",nc);
+                formData.append("series",product);
+                formData.append("seriesIdsStr",productid);
+                if(position == "1"){
+                  formData.append("position","1");
+                }if(position != "1"){
+                  formData.append("position","3");
+                }
+                
+                axios.post('http://xxxx/remoteAnalyze/carAnalyzeComment',formData)
+                .then(response =>{
+                  if (response.data.code == 200){
+                    console.log('get response successfully');
+                    console.log(response.data)
+                    var resList = [];
+                    var k = 0;
+                    //这里需要相应更改颜色
+                    var markOverall = response.data.result.mark;
+                    this.mark = markOverall;
+                    if (markOverall == "负面"){
+                      this.normalBtn = false;
+                    }else{
+                      this.normalBtn = true;
+                    }
+                    //正面/负面/中性 遍历
+                    for (var item in response.data.result.extra){
+                      var resultItem = response.data.result.extra[item];
+                      for (var itemSub in response.data.result.extra[item].attrs){
+                        var jsonObj ={
+                        segment: resultItem.sourceSentence,
+                        keyword: (resultItem.attrs[itemSub].feature + "-" +resultItem.attrs[itemSub].sentiment),
+                        first: resultItem.attrs[itemSub].dimension,
+                        second: resultItem.attrs[itemSub].attribute,
+                        third: resultItem.attrs[itemSub].property,
+                        property: resultItem.attrs[itemSub].polarity,
+                        }
+                        resList[k]=jsonObj;
+                        k=k+1;
+                      }
+                    }
+
+                    console.log(resList);
+                    this.tableData = resList;
+
+                  }else{
+                    console.log('some error occured.')
+                  }
+                })
+                .catch(function(error){
+                  console.log('some error occured.')
+                });
+              }
+              //媒体舆情
+              else{
+                // alert ('News'+ this.form.newsContent);
+                var nt = this.form.newsTitle;
+                var nc = this.form.newsContent;
+                console.log(nt+"#"+nc);
+                var formData = new FormData();
+                formData.append("type","car");
+                formData.append("industry","demo");
+                formData.append("title",nt);
+                formData.append("text",nc);
+                axios.post('http://xxxx/remoteAnalyze/carAnalyzeOpinion',
+                  formData)
+                  .then(response => {
+                    console.log(response);
+                    if (response.data.code == 200){
+                      console.log('get response successfully');
+                      console.log(response.data)
+                      var resList = [];
+                      var k = 0;
+                      //这里需要相应更改颜色
+                      var markOverall = response.data.result.mark;
+                      this.mark = markOverall;
+                      if (markOverall == "负面"){
+                        this.normalBtn = false;
+                      }else{
+                        this.normalBtn = true;
+                      }
+                      //正面/负面/中性 遍历
+                      for (var j in response.data.result.extra){
+                        var posNegRes = response.data.result.extra[j];
+                        if (posNegRes.length > 0){
+                          for(var i in posNegRes){
+                            var jsonObj = {
+                            segment: posNegRes[i].sentiment,
+                            keyword: posNegRes[i].feature+"-"+posNegRes[i].sentiment,
+                            first: posNegRes[i].dimension,
+                            second: posNegRes[i].attribute,
+                            third: posNegRes[i].property,
+                            property: Object.keys(response.data.result.extra)[i],
+                            }
+                            resList[k]=jsonObj;
+                            k=k+1;
+                          }
+                        }
+                      }
+                      console.log(resList);
+                      this.tableData = resList;
+
+                    }else{
+                      console.log('some error occured.')
+                    }
+                  })
+                  .catch(function(error){
+                    alert(error);
+                  });
+                
+              }
+              this.showResult = true;
+            } else {
+              console.log('error submit!!');
+              alert('please fill the required form');
+              return false;
+            }
+          });
+          
+        },
+        clear(f){
+          this.$refs[f].resetFields();
+        },
+        removeCard(){
+          this.showResult = false;
+        }
+      }
+    })
+  </script>
+</html>
+
+<style media="screen">
+#app{
+  text-align: left;
+  padding-left: 80px;
+  font-family: "Microsoft YaHei";
+  font-size: 13px;
+  width: 800px;
+  padding-right: 80px;
+}
+</style>
