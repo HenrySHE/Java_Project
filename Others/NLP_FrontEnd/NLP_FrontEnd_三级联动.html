@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<!-- created by HenrySHE on 2019/10/08 -->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+  <div id="app">
+    </br></br></br></br></br></br>
+    <el-card>
+        <div align="left" style="padding-left:20%;">
+            </el-row>
+            <el-row>
+                <el-col :span="14">
+                    <!-- <el-row>
+                        <select v-model="selected">
+                            <option v-for="option in options" v-bind:value="option.value"> {{option.text}}</option>
+                        </select>
+                        <span>Selected: {{selected}}</span>
+                    </el-row> -->
+                    <el-row>
+                        <el-form :model="customForm" label-width="160px" label-position="right">
+                            </br>
+                                
+                                <el-form-item label="类别ss">
+                                    <el-select v-model="customForm.type" placeholder="请选择类别" style="min-width: 100px;">
+                                        <!-- <el-option label="hello" value="hi"></el-option> -->
+                                        <!-- <el-option v-for="item in (hasDomainOptions.types)" :key="item.value" :label="item.label" :value="item.value"></el-option> -->
+                                        <el-option v-for ="item in (hasDomainOptions.types)" v-bind:value="item.value">{{item.text}}</el-option>
+                                    </el-select>
+                                    <!-- <span>
+                                        {{customForm.type}}
+                                    </span> -->
+                                </el-form-item>
+                                <el-form-item label="行业">
+                                    <el-select v-model="customForm.industry" placeholder="请选择行业" style="min-width: 100px;">
+                                        <el-option v-for="item in (hasDomainOptions.industries)"   :label="item.label" :value="item.value"></el-option>
+
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="品类">
+                                    <el-select v-model="customForm.domain" placeholder="请选择品类" style="min-width: 100px;">
+                                        <el-option v-for="item in (hasDomainOptions.domains)"  :label="item.label" :value="item.value"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="版本号">
+                                    <el-select v-model="customForm.version" placeholder="请选择版本号" style="min-width: 100px;">
+                                        <el-option v-for="item in (hasDomainOptions.versions)"  :label="item.label" :value="item.value"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <div v-if="customForm.new_domain">
+                                    <el-form-item label="使用已有词典">
+                                        <el-switch v-model="customForm.has_domain"></el-switch>
+                                    </el-form-item>
+                                </div>
+                                <div v-if ="customForm.has_domain">
+                                    <el-form-item label="行业">
+                                        <el-select
+                                            v-model="customForm.source.industry"
+                                            placeholder="请选择已有行业"
+                                            style="min-width: 100px;"
+                                        ></el-select>
+                                        <el-option
+                                            v-for="(industry,key) in newDomainSourceOptions.industries"
+                                            :key="key"
+                                            :lable="industry.option"
+                                            :value="industry.industry"
+                                        ></el-option>
+                                    </el-form-item>
+                                    <el-form-item label="品类">
+                                        <el-select
+                                            v-model="customForm.source.domain"
+                                            placeholder="请基于已有品类"
+                                            style="min-width: 100px;"
+                                        ></el-select>
+                                        <el-option
+                                            v-for="(domain,key) in newDomainOptions.domains"
+                                            :key="key"
+                                            :label="domain.option"
+                                            :value="domain.name"
+                                        ></el-option>
+                                    </el-form-item>
+                                </div>
+                        </el-form>
+                    </el-row>
+                    <el-row type="flex" pull="2" push="2" justify="end" class="el-row-stype">
+                        <el-button type="primary" @click="handelAddSubmit()">确 定</el-button>
+                    </el-row>
+                </el-col>
+            </el-row>
+        </div>
+
+    </el-card >
+
+  </br></br>
+
+
+    
+  </div>
+</body>
+  <!-- import Vue before Element -->
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <!-- import JavaScript -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <!-- import axios -->
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script>
+
+
+        
+    new Vue({
+      el: '#app',
+      data: function() {
+        return {
+            selected: 'A',
+            options:[
+                { text: 'one', value: 'A' },
+                { text: 'two', value: 'B' },
+                { text: 'three', value: 'C' },
+            ],
+            //-------------------------------------
+            resultTree:[],
+            editTree:[],
+            indexTree:[],
+            lev2Tree:[],
+            lev3Tree:[],
+            lev4Tree:[],
+            lev5Tree:[],
+            customForm: {
+                new_domain: false,
+                type: "",
+                industry: "",
+                domain: "",
+                version: "",
+                has_domain: false,
+                source: {
+                    domain: "",
+                    industry: "",
+                    type: ""
+                }
+            },
+            newDomainSourceOptions: {
+                domains: [],
+                industries: []
+            },
+            hasDomainOptions: {
+                types: [],
+                industries: [],
+                domains: [],
+                versions: [],
+            },
+            newDomainOptions: {
+                types: [],
+                industries: [],
+                domains: []
+            },
+            //---
+            UnitSelected: "",
+            UnitList: [],
+            DepartmentSelected: "",
+            DepartmentList: [],
+            UserSelected: "",
+            UserList: []
+        };
+      },      
+        
+      mounted:function() {
+          
+        //---------------------------------------------------------------
+        axios.get('http://10.17.157.58:8085/label/getEditTree')
+        .then(res => {
+            if (res.data.code === "200") {
+                var treeValues = res.data.result;
+                var editTree = [];
+                treeValues.forEach((m, i) => {
+                    if (m.parentId === null || m.parentId === 0) {
+                        let module = {
+                            name: m.name,
+                            value: [],
+                            meta: {
+                                id: m.id,
+                                name: m.name
+                            }
+                        };
+                        editTree.push(module);
+                    }
+                });
+                this.convertTree(treeValues, editTree);
+                console.log(editTree);
+                console.log(editTree[0].name);
+                console.log(editTree[0].children[0].name);
+                console.log(editTree[0].children[0].children[0].name);
+                console.log(editTree[0].children[0].children[0].children[0].name);
+                console.log(editTree[0].children[0].children[0].children[0].value[0].isNewDomain === "Y");
+                console.log('-----end----');
+                
+                this.editTree = editTree;
+                // for (var i = 0; i < this.editTree.length; i++) {
+                //     this.versionSelectOptions.typeOptions.push({
+                //         option: this.editTree[i].name,
+                //         name: this.editTree[i].name
+                //     });
+                // }
+                // if (this.editTree.length > 0) {
+                //     this.versionSelectValue.type = this.editTree[0].name;
+                // }
+                // console.log("--------------------");    
+                // console.log( this.editTree.toString());
+                for (var i = 0; i< this.editTree.length; i++){
+                    this.hasDomainOptions.types[i] = {
+                        value: editTree[i].name,  
+                        text: editTree[i].name,
+                    };  
+                }
+                //如果有结果则,把默认值附上去
+                 if(this.hasDomainOptions.types.length > 0){
+                    var lev1Result = this.hasDomainOptions.types[0].text;
+                    this.customForm.type = lev1Result;
+
+                    var lev2Result = editTree[0].children[0].name;
+                    this.lev2Tree = editTree[0].children[0];
+                    this.customForm.industry = lev2Result;
+
+                    var lev3Result = editTree[0].children[0].children[0].name;
+                    this.lev3Tree =  editTree[0].children[0].children[0];
+                    this.customForm.domain = lev3Result;
+
+                    var lev4Result = editTree[0].children[0].children[0].children[0].name;
+                    this.lev4Tree = editTree[0].children[0].children[0].children[0];
+                    this.customForm.version = lev4Result;
+                 }
+       
+                // var str = JSON.stringify(this.hasDomainOptions.types, null, 2)
+                // console.log(str)
+
+            } else {
+                this.$message.warning("获取类别行业品类出错");
+            }
+        })
+        .catch( error => {
+            this.$message.warning(error);
+        });
+
+        //console.log(this.editTree);
+
+      },
+      watch:{
+        "customForm.type":function(val){
+            // var result;
+            for(var i=0; i<this.editTree.length;i++){
+                if (this.editTree[i].name == val){
+                    this.lev2Tree = this.editTree[i].children;
+                }
+            }
+            // var str = JSON.stringify(this.editTree, null, 2);
+            // console.log(str);
+            this.hasDomainOptions.industries = [];
+            for (var j = 0; j < this.lev2Tree.length; j++) {
+                  this.hasDomainOptions.industries[j] = {
+                    value: this.lev2Tree[j].name,
+                    text: this.lev2Tree[j].name,
+                  };
+              }
+            //   console.log (this.hasDomainOptions.industries);
+            this.customForm.industry = this.lev2Tree[0].name;
+            this.customForm.domain = this.lev2Tree[0].children[0].name;
+            this.customForm.version = this.lev2Tree[0].children[0].children[0].name;
+
+        },
+        "customForm.industry": function(val){
+            for (var i=0; i<this.lev2Tree.length; i++){
+                if (this.lev2Tree[i].name == val){
+                    this.lev3Tree = this.lev2Tree[i].children;
+                }
+            }
+            // var str = JSON.stringify(this.lev3Tree, null, 2);
+            // console.log(str);
+            this.hasDomainOptions.domains = [];
+            for (var j = 0; j < this.lev3Tree.length; j++){
+                this.hasDomainOptions.domains[j] = {
+                    value: this.lev3Tree[j].name,
+                    text: this.lev3Tree[j].name,
+                };
+            }
+            this.customForm.domian = this.lev3Tree[0].name;
+            this.customForm.version = this.lev3Tree[0].children[0].name;
+        },
+        "customForm.domain": function(val){
+            for (var i = 0; i < this.lev3Tree.length; i++) {
+                if (this.lev3Tree[i].name == val) {
+                    this.lev4Tree = this.lev3Tree[i].children;
+                }
+            }
+            this.hasDomainOptions.versions=[];
+            for (var j = 0; j < this.lev4Tree.length; j++) {
+                this.hasDomainOptions.versions[j] = {
+                    value: this.lev4Tree[j].name,
+                    text: this.lev4Tree[j].name,
+                };
+            }
+            this.customForm.version = this.lev4Tree[0].name;
+            // var str = JSON.stringify(this.lev4Tree, null, 2);
+            // console.log(str);
+        },
+        "customForm.version": function(val){
+            var judgeNewDomain;
+            this.customForm.has_domain = false;
+            for (var i = 0; i < this.lev4Tree.length; i ++){
+                if (this.lev4Tree[i].name == val){
+                    judgeNewDomain = this.lev4Tree[i].value[0].isNewDomain; 
+                }
+            }
+            // console.log (judgeNewDomain);
+            if (judgeNewDomain == "Y"){
+                // console.log("yes!");
+                this.customForm.new_domain = true;
+            }else {
+                this.customForm.new_domain = false;
+            }
+        }
+
+      },
+      methods:{
+        convertTree(treeValues, editTree) {
+            editTree.forEach(r => {
+                treeValues.forEach((m, i) => {
+                    if (m.parentId !== 0 && m.parentId === r.meta.id) {
+                        if (!r.children) r.children = [];
+                        let node = {
+                            name: m.name,
+                            value: [],
+                            meta: { id: m.id, name: m.name }
+                        };
+                        if (m.value) {
+                            node.value = m.value;
+                        }
+                        r.children.push(node);
+                    }
+                });
+                if (r.children) this.convertTree(treeValues, r.children);
+            });
+        },
+        /**
+       * 获取树中对应的值用于生成下一个选项
+       * newValue 为新选者的值
+       * tree 为需要遍历的树
+       * options 为生成的下一个选项
+       *
+       * return 返回下一个选项的第一个值和缓存树
+       */
+        getTreeValue(newValue, tree, options) {
+            var firstValue = "";
+            var cacheTree = [];
+            if (tree && newValue) {
+                tree.forEach(r => {
+                    if (r.name === newValue) {
+                        if (r.children) {
+                            for (var i = 0; i < r.children.length; i++) {
+                                options.push({
+                                    option: r.children[i].name,
+                                    name: r.children[i].name
+                                });
+                            }
+                            if (r.children.length > 0) {
+                                firstValue = r.children[0].name;
+                            }
+                            cacheTree = r.children;
+                        }
+                    }
+                });
+            }
+            return { selectValue: firstValue, cacheTree: cacheTree };
+        },
+      }
+    })
+  </script>
+</html>
+
+<style media="screen">
+#app{
+  text-align: left;
+  padding-left: 80px;
+  font-family: "Microsoft YaHei";
+  font-size: 13px;
+  width: 800px;
+  padding-right: 80px;
+}
+</style>
