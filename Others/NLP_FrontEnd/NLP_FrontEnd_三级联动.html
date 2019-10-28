@@ -168,7 +168,7 @@
       mounted:function() {
           
         //---------------------------------------------------------------
-        axios.get('http://10.17.157.58:8085/label/getEditTree')
+        axios.get('/label/getEditTree')
         .then(res => {
             if (res.data.code === "200") {
                 var treeValues = res.data.result;
