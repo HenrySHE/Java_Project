@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
+"""
+@Author: shehy2(HenrySHE)
+
+@Date: 2019-10-24 THU
+"""
 import mysql.connector
 import pymysql
 import math
+import time
 
 class DistanceResult():
     def __init__(self, id1, lat1, lon1):
@@ -41,6 +47,7 @@ class circleObject():
         self.cOnePoints = set()
         self.cTwoPoints = set()
         self.cThreePoints = set()
+        self.cFourPoints = set()
         #用来存储id号, 这些是归属商圈id为空, 但是属于一二三级商圈的点
         self.updateSet = set()
     
@@ -58,42 +65,28 @@ def calcDistance2(id1, lat1, lon1, id2, lat2, lon2):
 def deg2rad(deg):
     return deg*(math.pi/180)
 
-
-def conn_db_1():
-    mydb = mysql.connector.connect(
-        host = "0",
-        user = "0",
-        password = "0"
-    )
-    mydb = mysql.connector.connect(
-        host = "0",
-        user = "0",
-        port = 0,
-        password = "0",
-        db = "0"
-    )
-    print(mydb)
-
 def connDb():
-    # db = pymysql.connect(host = "0",
-    #                     user ="0",
-    #                     port = 0,
-    #                     password = "0",
-    #                     db = "0")
+    #获取当前月份数
+    month = time.strftime('%m',time.localtime(time.time()))
+    month = str(int(time.strftime('%m',time.localtime(time.time())))-1)
 
-    db = pymysql.connect(host = "0",
-                        user ="0",
-                        port = 0,
-                        password = "0",
-                        db = "0")
+    db = pymysql.connect(host = "",
+                        user ="",
+                        port = ,
+                        password = "",
+                        db = "")
     
     cursor = db.cursor()
     #选择所有商圈的经纬度,以及id并存储
-    sql1 = "SELECT id,lat,lon FROM t_dealer_circle"
+    sql1 = "SELECT id,lat,lon FROM t_dealer_circle WHERE lat != '' AND lon != '' AND lat IS NOT NULL AND lon IS NOT NULL;"
     #选择所有的还未被归类的数据
-    sql = "SELECT id, dealer_id, lat, lon FROM t_dealer_custom WHERE platform_id IN (0,101) AND created_time <= '2019-09-30 23:59:59' AND updated_time >= '2019-09-01 00:00:00' AND dealer_circle_code = '' AND lat != '' AND lon != ''"
+    #sql = "SELECT id, dealer_id, lat, lon FROM t_dealer_custom WHERE platform_id IN (0,101) AND created_time <= '2019-09-30 23:59:59' AND updated_time >= '2019-09-01 00:00:00' AND dealer_circle_code = '' AND lat != '' AND lon != ''"
+    sql = (("SELECT id, dealer_id, lat, lon FROM t_dealer_custom WHERE platform_id IN (0,101) AND created_time <= '2019-%s-30 23:59:59' AND updated_time >= '2019-%s-01 00:00:00' AND dealer_circle_code = '' AND lat != '' AND lon != '';")%(month,month))
+    
     # 选择所有点, 以及它的商圈id (有可能为空'',所以强制转换为str类型)
-    sql2 = "SELECT id, lat, lon,dealer_circle_code FROM t_dealer_custom WHERE platform_id IN (1,101) AND lat != '' AND lon != '' AND lat IS NOT NULL and lon IS NOT NULL AND lat > 0 AND lat < 90 AND lon > 0 AND lon < 180"
+    #sql2 = "SELECT id, lat, lon,dealer_circle_code FROM t_dealer_custom WHERE platform_id IN (1,101) AND created_time <= '2019-09-30 23:59:59' AND updated_time >= '2019-09-01 00:00:00' AND lat != '' AND lon != '' AND lat IS NOT NULL and lon IS NOT NULL AND lat > 0 AND lat < 90 AND lon > 0 AND lon < 180"
+    sql2 = (("SELECT id, lat, lon,dealer_circle_code FROM t_dealer_custom WHERE platform_id IN (1,101) AND created_time <= '2019-%s-30 23:59:59' AND updated_time >= '2019-%s-01 00:00:00' AND lat != '' AND lon != '' AND lat IS NOT NULL and lon IS NOT NULL AND lat > 0 AND lat < 90 AND lon > 0 AND lon < 180;")%(month,month))
+
 
     try:
         cursor.execute(sql1)
@@ -161,11 +154,11 @@ def test():
 def setCircleResults(cObj):
     print('开始连接数据库..')
     #获取同一个商圈的数据:
-    db = pymysql.connect(host = "0",
-                        user ="0",
-                        port = 0,
-                        password = "0",
-                        db = "0")
+    db = pymysql.connect(host = "",
+                        user ="",
+                        port = ,
+                        password = "",
+                        db = "")
 
     mycursor = db.cursor()
     # 选择rawPoints (且商圈id和circleObject相匹配的)
@@ -240,18 +233,51 @@ def findOneTwoThreePoints(cObj):
                 if (itemTwo[3] == ''):
                     #如果这个商圈还没被标记, 则把这个点记录到updateSet里面
                     cObj.updateSet.add(itemTwo[0])
-
+    for cThreePoint in cObj.cThreePoints:
+        try:
+            cObj.rawPoints.remove(cThreePoint)
+        except:
+            print('cThreePoint移除失败!')
+    
+    #第四个圈计算
+    for itemOne in cObj.cThreePoints:
+        for itemTwo in cObj.rawPoints:
+            (tempId,tempLat,tempLon,tempS) = calcDistance2(itemOne[0], itemOne[1], itemOne[2], itemTwo[0], itemTwo[1], itemTwo[2])
+            #如果这个点在 (0>500)
+            if (tempS <= 500.0):
+                #添加到第四个圈的数据里
+                tempResultTuple = (itemTwo[0], itemTwo[1], itemTwo[2], itemTwo[3])
+                cObj.cFourPoints.add(tempResultTuple)
+                if (itemTwo[3] == ''):
+                    #如果这个商圈还没被标记, 则把这个点记录到updateSet里面
+                    cObj.updateSet.add(itemTwo[0])
+    for cFourPoint in cObj.cFourPoints:
+        try:
+            cObj.rawPoints.remove(cFourPoint)
+        except:
+            print('cFourPoint移除失败!')
+    '''
+    print (cObj.cZeroPoints)
+    print ('--------------')
+    print (cObj.cOnePoints)
+    print ('--------------')
+    print (cObj.cTwoPoints)
+    print ('--------------')
+    print (cObj.cThreePoints)
+    print ('--------------')
+    print (cObj.cFourPoints)
+    '''
     #小的想法, 我是否可以复用这个rawPoints? 这样后面分析的rawPoints会越来越少, 也就是会越来越快
     return cObj.updateSet
 
 
 #数据库更新操作(已经测试成功, 需要传的是门店点的id(唯一标识),以及需要更改的商圈id号),后续可能改成传一个List会比较好,这样就不用重复连接数据库
 def dbUpdate(id,circleNum):
-    db = pymysql.connect(host = "0",
-                        user ="0",
-                        port = 0,
-                        password = "0",
-                        db = "0")
+    db = pymysql.connect(host = "",
+                        user =,
+                        port = ,
+                        password = "",
+                        db = "")
     
     cursor = db.cursor()
     sql = "UPDATE t_dealer_custom SET dealer_circle_code = "+ circleNum +" WHERE id = " + id
@@ -266,6 +292,7 @@ def dbUpdate(id,circleNum):
 
 #查询新增点的归属商圈(逻辑是<=1500米距离的,算属于这个商圈的点,然后进行更新操作)
 def findNewPointBelonging(circleDict, newPoints):
+    month = str(int(time.strftime('%m',time.localtime(time.time())))-1)
     print('一共发现%d个还未被归如商圈的新增点,现在开始分析..'%(len(newPoints)))
     #开始计算距离
     finalResult = []
@@ -295,10 +322,12 @@ def findNewPointBelonging(circleDict, newPoints):
     print('从新增数据中共发现%d条可归入现有商圈的数据'%(len(finalResult)))
     if (len(finalResult) > 0):
         print('正在写入数据到output_filtered.txt')
-        filename = 'output_filtered.txt'
+        filename = 'output_filtered(10月新增点)_SQL.txt'
         with open(filename, 'w') as file_object:
             for item in finalResult:
-                file_object.write(str(item['id1'])+ '\t' + str(item['lat1'])+ '\t' + str(item['lon1'])+ '\t' + str(item['id2'])+ '\t' + str(item['lat2'])+ '\t' + str(item['lon2'])+ '\t' + str(item['s'])+ '\n' )
+                #file_object.write(str(item['id1'])+ '\t' + str(item['lat1'])+ '\t' + str(item['lon1'])+ '\t' + str(item['id2'])+ '\t' + str(item['lat2'])+ '\t' + str(item['lon2'])+ '\t' + str(item['s'])+ '\n' )
+                updateSqlQuery=  ("UPDATE t_dealer_custom SET dealer_circle_code = '%s' WHERE id = '%s' AND dealer_circle_code = '' AND platform_id IN (0, 101) AND created_time <= '2019-%s-31 23:59:59' AND updated_time >= '2019-%s-01 00:00:00';\n"%(str(item['id2']),str(item['id1']),month,month))
+                file_object.write(updateSqlQuery)
         print ('写入完成, 共写入%d条数据'%(len(finalResult)))
         #后续要改成写入数据库
 
@@ -309,11 +338,12 @@ def main():
     print('circleDict Length is %d'%(len(circleDict)))
     print('newPoints Length is %d'%(len(newPoints)))
     print('allPoints Length is %d'%(len(allPoints)))
-    # findNewPointBelonging(circleDict,rawPoints)
+    findNewPointBelonging(circleDict,newPoints)
     #----------------------------------------商第一二三四个圈计算---------------------------------------------------
-    updateList = []
+    updateTime = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+    print ('商圈点更新时间为: %s'%(updateTime))
     for circle in circleDict:
-        #if circle['id'] != 49:
+        #if circle['id'] != 103:
         #    continue
         circleId = circle['id']
         circleLat = circle['lat']
@@ -347,21 +377,21 @@ def main():
         '''
         if(len(resultUpdateSet) > 0):
             print('正在写入更新数据')
-            fileName = '一二三级商圈更新点.txt'
+            fileName = '一二三级商圈更新点(10月数据)_SQL.txt'
             with open(fileName, 'a') as fileObj:
                 for resultItem in resultUpdateSet:
                     #print(str(circleId))
                     #print(str(resultItem))
                     #print('更新值为 (商圈id)以及(经销点的id)')
-                    resultStr = str(circleId) + '\t' + str(resultItem) + '\n'
-                    print(resultStr)
-                    fileObj.write(resultStr)
+                    #resultStr = str(circleId) + '\t' + str(resultItem) + '\t' + updateTime + '\n'
+                    #resultStr = str(circleId) + '\t' + str(resultItem)  + '\n'
+                    updateSqlQuery=  ("UPDATE t_dealer_custom SET dealer_circle_code = '%s' WHERE id = '%s' AND dealer_circle_code = '' AND platform_id IN (0, 101) AND created_time <= '2019-%s-31 23:59:59' AND updated_time >= '2019-%s-01 00:00:00';\n"%(str(circleId),str(resultItem),'10','10'))
+                    print(updateSqlQuery)
+                    fileObj.write(updateSqlQuery)
                 #fileObj.write(str(resultUpdateSet))
-            print('写入完成, 共有%d条新数据待加%d号商圈'%(len(resultUpdateSet),circleId))
+        print('写入完成, 共有%d条新数据待加%d号商圈'%(len(resultUpdateSet),circleId))
         
             
-
-
 
 if __name__ == '__main__':
     main()
