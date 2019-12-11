@@ -1038,4 +1038,22 @@ public class Holder3<T>{
 Automobile@6bc7c054
 */
 ```
+
+## 元组Tuple
+
+在`/TestGenerics/`里
+
+```java
+public class TwoTuple<A,B>{
+  public final A first;
+  public final B second;
+  public TwoTuple(A a, B b){
+    first = a;
+    second = b;
+  }
+  public String toString(){
+    return  "(" + first + "," + second + ")";
+  }
+}
+```
 To be continued..
